@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - Sri Rama AR Vision V4 (Fixed & Optimized)</title>
+    <title>FIZONYX - Sri Rama Simple AR Vision</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,65 +18,31 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #050505;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        #canvas-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-color: #000;
+            font-family: sans-serif;
         }
         canvas {
-            transform: scaleX(-1); /* Mirror camera feed */
+            transform: scaleX(-1); /* Mirror camera */
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             object-fit: cover;
         }
-        video {
-            display: none;
-        }
-        .glow-box {
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
-            border: 2px solid rgba(255, 215, 0, 0.5);
-        }
+        video { display: none; }
     </style>
 </head>
 <body class="text-white select-none">
 
-    <!-- UI Panel -->
-    <div class="absolute top-4 left-4 z-20 bg-gray-900/90 backdrop-blur-md glow-box p-4 rounded-xl max-w-sm pointer-events-none">
-        <h1 class="text-xl font-extrabold text-amber-400 tracking-wider">SRI RAMA AR ENGINE V4</h1>
-        <p class="text-[11px] text-cyan-300 mt-0.5 font-mono">FIZONYX High-Security Vision Lab</p>
-        
-        <div class="mt-3 space-y-1.5 text-xs">
-            <div class="flex items-center space-x-2">
-                <span id="hand-count-dot" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-                <span id="hand-count-text" class="font-bold text-gray-300">Active - 0 Hand(s) Tracked</span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span id="gesture-state" class="font-bold text-amber-300">Gesture: Show Hands</span>
-            </div>
-        </div>
-
-        <div class="mt-3 border-t border-gray-700/60 pt-2 text-[11px] text-gray-300 space-y-1">
-            <p class="text-amber-300 font-bold">🎯 AR గైడ్ / Controls:</p>
-            <p>• <b class="text-cyan-300">కోదండం (Bow):</b> ఏదైనా ఒక చేతిని పిడికిలి (Fist) బిగించండి.</p>
-            <p>• <b class="text-cyan-300">బాణం (Arrow):</b> వేరే చేత్తో బొటన + చూపుడు వేలు కలిపి లాగండి (Pinch & Pull).</p>
-        </div>
+    <!-- Status UI -->
+    <div class="absolute top-4 left-4 z-20 bg-black/80 border border-amber-500/50 p-4 rounded-xl max-w-xs pointer-events-none">
+        <h1 class="text-lg font-bold text-amber-400">SRI RAMA AR - SIMPLE</h1>
+        <p id="status-text" class="text-xs text-cyan-300 mt-1 font-mono">Show your hand to camera...</p>
     </div>
 
-    <!-- Hidden Webcam Video Source -->
     <video id="webcam" playsinline></video>
-
-    <!-- Canvas Layer -->
-    <div id="canvas-container">
+    <div style="position: relative; width: 100vw; height: 100vh;">
         <canvas id="output_canvas"></canvas>
     </div>
 
@@ -84,16 +50,7 @@
         const videoElement = document.getElementById('webcam');
         const canvasElement = document.getElementById('output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
-        
-        const handCountDot = document.getElementById('hand-count-dot');
-        const handCountText = document.getElementById('hand-count-text');
-        const gestureStateEl = document.getElementById('gesture-state');
-
-        let arrows = [];
-        let particles = [];
-        let isArrowLoaded = false;
-        let bowPosition = { x: 0, y: 0 };
-        let arrowTailPosition = { x: 0, y: 0 };
+        const statusText = document.getElementById('status-text');
 
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
@@ -102,277 +59,85 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Sound FX for Arrow Release
-        function playShootSound() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(450, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.35);
-                gain.gain.setValueAtTime(0.6, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.35);
-            } catch(e) {}
-        }
-
-        // Particle Class
-        class Particle {
-            constructor(x, y, vx, vy) {
-                this.x = x;
-                this.y = y;
-                this.vx = vx;
-                this.vy = vy;
-                this.alpha = 1.0;
-                this.size = Math.random() * 5 + 2;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha -= 0.03;
-            }
-            draw(ctx) {
-                ctx.save();
-                ctx.globalAlpha = Math.max(this.alpha, 0);
-                ctx.fillStyle = '#FFD700';
-                ctx.shadowColor = '#FFD700';
-                ctx.shadowBlur = 15;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        // Arrow Class
-        class Arrow {
-            constructor(sx, sy, tx, ty) {
-                this.x = sx;
-                this.y = sy;
-                const angle = Math.atan2(ty - sy, tx - sx);
-                const speed = 45;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
-                this.angle = angle;
-                this.life = 0;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life++;
-                for(let i=0; i<4; i++) {
-                    particles.push(new Particle(this.x, this.y, (Math.random()-0.5)*4, (Math.random()-0.5)*4));
-                }
-            }
-            draw(ctx) {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.shadowColor = '#00FFFF';
-                ctx.shadowBlur = 25;
-
-                // Shaft
-                ctx.strokeStyle = '#FFF8DC';
-                ctx.lineWidth = 6;
-                ctx.beginPath();
-                ctx.moveTo(-70, 0);
-                ctx.lineTo(30, 0);
-                ctx.stroke();
-
-                // Arrow Head
-                ctx.fillStyle = '#FFD700';
-                ctx.beginPath();
-                ctx.moveTo(35, 0);
-                ctx.lineTo(15, -10);
-                ctx.lineTo(15, 10);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.restore();
-            }
-        }
-
-        // Check Fist Gesture
-        function checkFist(landmarks) {
-            const wrist = landmarks[0];
-            const tips = [8, 12, 16, 20];
-            const pips = [6, 10, 14, 18];
-            let foldedCount = 0;
-            for(let i=0; i<4; i++) {
-                const tipDist = Math.hypot(landmarks[tips[i]].x - wrist.x, landmarks[tips[i]].y - wrist.y);
-                const pipDist = Math.hypot(landmarks[pips[i]].x - wrist.x, landmarks[pips[i]].y - wrist.y);
-                if (tipDist < pipDist * 1.3) {
-                    foldedCount++;
-                }
-            }
-            return foldedCount >= 3;
-        }
-
-        // Check Pinch Gesture (Thumb + Index)
-        function checkPinch(landmarks) {
-            const d1 = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
-            return (d1 < 0.12);
-        }
-
-        // Draw Kodandam Bow
-        function drawBow(ctx, pos, pullPos) {
-            ctx.save();
-            ctx.shadowColor = '#FFD700';
-            ctx.shadowBlur = 35;
-
-            // Outer Bow Arch
-            ctx.strokeStyle = '#DAA520';
-            ctx.lineWidth = 16;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 160, -Math.PI * 0.45, Math.PI * 0.45, false);
-            ctx.stroke();
-
-            // Inner Gold Highlights
-            ctx.strokeStyle = '#FFF8DC';
-            ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 160, -Math.PI * 0.45, Math.PI * 0.45, false);
-            ctx.stroke();
-
-            const topTip = { x: pos.x + Math.cos(-Math.PI * 0.45) * 160, y: pos.y + Math.sin(-Math.PI * 0.45) * 160 };
-            const bottomTip = { x: pos.x + Math.cos(Math.PI * 0.45) * 160, y: pos.y + Math.sin(Math.PI * 0.45) * 160 };
-
-            // Bow String
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(topTip.x, topTip.y);
-
-            if (pullPos) {
-                ctx.lineTo(pullPos.x, pullPos.y);
-                ctx.lineTo(bottomTip.x, bottomTip.y);
-                ctx.stroke();
-
-                // Draw loaded arrow on string pointing towards bow center
-                const angle = Math.atan2(pos.y - pullPos.y, pos.x - pullPos.x);
-                const hx = pullPos.x + Math.cos(angle) * 220;
-                const hy = pullPos.y + Math.sin(angle) * 220;
-
-                ctx.shadowColor = '#00FFFF';
-                ctx.shadowBlur = 20;
-                ctx.strokeStyle = '#FFF8DC';
-                ctx.lineWidth = 5;
-                ctx.beginPath();
-                ctx.moveTo(pullPos.x, pullPos.y);
-                ctx.lineTo(hx, hy);
-                ctx.stroke();
-
-                ctx.fillStyle = '#FFD700';
-                ctx.beginPath();
-                ctx.arc(hx, hy, 8, 0, Math.PI * 2);
-                ctx.fill();
-            } else {
-                ctx.lineTo(bottomTip.x, bottomTip.y);
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-
-        // MediaPipe Hands Results Callback
         function onResults(results) {
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-            const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
-            
-            if (numHands > 0) {
-                handCountDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
-                handCountText.innerText = `Active - ${numHands} Hand(s) Tracked`;
-            } else {
-                handCountDot.className = "w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse";
-                handCountText.innerText = `Active - 0 Hand(s) Tracked`;
-                gestureStateEl.innerText = "Gesture: Show Hands";
-            }
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                statusText.innerText = `Hand Tracked: ${results.multiHandLandmarks.length} Found ✅`;
+                statusText.className = "text-xs text-emerald-400 mt-1 font-mono font-bold";
 
-            let bowActive = false;
-            let currentStringPos = null;
-
-            if (results.multiHandLandmarks) {
-                // Loop through all detected hands
-                for (let index = 0; index < results.multiHandLandmarks.length; index++) {
-                    const landmarks = results.multiHandLandmarks[index];
-
-                    // Doctor Strange Style Glowing Hand Landmarks & Connections
+                for (const landmarks of results.multiHandLandmarks) {
+                    // 1. Draw Doctor Strange Style Hand Skeleton (Cyan & Pink Dots)
                     drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FFCC', lineWidth: 3 });
                     drawLandmarks(canvasCtx, landmarks, { color: '#FF0055', lineWidth: 1, radius: 5 });
 
-                    // Fingertips glowing cyan dots
-                    const fingerTips = [4, 8, 12, 16, 20];
-                    fingerTips.forEach(tipIdx => {
-                        const pt = landmarks[tipIdx];
+                    // Fingertips extra glowing dots
+                    [4, 8, 12, 16, 20].forEach(idx => {
+                        const pt = landmarks[idx];
                         canvasCtx.save();
                         canvasCtx.fillStyle = '#00FFFF';
                         canvasCtx.shadowColor = '#00FFFF';
                         canvasCtx.shadowBlur = 15;
                         canvasCtx.beginPath();
-                        canvasCtx.arc(pt.x * canvasElement.width, pt.y * canvasElement.height, 8, 0, Math.PI * 2);
+                        canvasCtx.arc(pt.x * canvasElement.width, pt.y * canvasElement.height, 7, 0, Math.PI * 2);
                         canvasCtx.fill();
                         canvasCtx.restore();
                     });
 
+                    // 2. Attach a Simple Graphical Bow (కోదండం బొమ్మ) on Palm (Wrist / Middle MCP)
                     const wrist = landmarks[0];
-                    const handCenter = { x: wrist.x * canvasElement.width, y: wrist.y * canvasElement.height };
+                    const middleMCP = landmarks[9];
+                    const wx = wrist.x * canvasElement.width;
+                    const wy = wrist.y * canvasElement.height;
+                    const mx = middleMCP.x * canvasElement.width;
+                    const my = middleMCP.y * canvasElement.height;
 
-                    // If hand is making a fist -> Bow Active
-                    if (checkFist(landmarks)) {
-                        bowActive = true;
-                        bowPosition = handCenter;
-                        gestureStateEl.innerText = "Bow Active (కోదండం సిద్ధం ✅)";
-                    } 
-                    // If hand is making a pinch gesture -> Draw Arrow
-                    else if (checkPinch(landmarks)) {
-                        isArrowLoaded = true;
-                        arrowTailPosition = handCenter;
-                        currentStringPos = handCenter;
-                        gestureStateEl.innerText = "Arrow Loaded (బాణం లాగబడింది 🏹)";
-                    } else if (isArrowLoaded && !checkPinch(landmarks)) {
-                        // Release Arrow
-                        arrows.push(new Arrow(arrowTailPosition.x, arrowTailPosition.y, bowPosition.x, bowPosition.y));
-                        playShootSound();
-                        isArrowLoaded = false;
-                        gestureStateEl.innerText = "Arrow Released! 🚀";
-                    }
+                    // Center point for bow near hand
+                    const cx = (wx + mx) / 2;
+                    const cy = (wy + my) / 2;
+
+                    canvasCtx.save();
+                    canvasCtx.shadowColor = '#FFD700';
+                    canvasCtx.shadowBlur = 20;
+
+                    // Simple Bow Arc
+                    canvasCtx.strokeStyle = '#FFD700';
+                    canvasCtx.lineWidth = 10;
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(cx, cy, 100, -Math.PI * 0.4, Math.PI * 0.4, false);
+                    canvasCtx.stroke();
+
+                    // Bow String
+                    canvasCtx.strokeStyle = '#FFFFFF';
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.beginPath();
+                    const topY = cy + Math.sin(-Math.PI * 0.4) * 100;
+                    const topX = cx + Math.cos(-Math.PI * 0.4) * 100;
+                    const botY = cy + Math.sin(Math.PI * 0.4) * 100;
+                    const botX = cx + Math.cos(Math.PI * 0.4) * 100;
+                    
+                    canvasCtx.moveTo(topX, topY);
+                    canvasCtx.lineTo(botX, botY);
+                    canvasCtx.stroke();
+
+                    canvasCtx.restore();
                 }
-            }
-
-            if (bowActive) {
-                drawBow(canvasCtx, bowPosition, currentStringPos);
-            }
-
-            // Update & Draw Flying Arrows
-            for (let i = arrows.length - 1; i >= 0; i--) {
-                arrows[i].update();
-                arrows[i].draw(canvasCtx);
-                if (arrows[i].life > 80) arrows.splice(i, 1);
-            }
-
-            // Update & Draw Particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                particles[i].update();
-                particles[i].draw(canvasCtx);
-                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            } else {
+                statusText.innerText = "No hand detected. Show hand!";
+                statusText.className = "text-xs text-red-400 mt-1 font-mono";
             }
         }
 
         const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            locateFile: (file) => `https://cdn.jsdelivr.5net/npm/@mediapipe/hands/${file}`.replace('.5', '')
         });
 
         hands.setOptions({
             maxNumHands: 2,
             modelComplexity: 1,
-            minDetectionConfidence: 0.65,
-            minTrackingConfidence: 0.65
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
         });
 
         hands.onResults(onResults);
@@ -387,7 +152,7 @@
 
         camera.start().catch(err => {
             console.error("Camera Error:", err);
-            gestureStateEl.innerText = "Camera Access Denied!";
+            statusText.innerText = "Camera Permission Denied!";
         });
     </script>
 </body>
