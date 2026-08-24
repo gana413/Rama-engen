@@ -3,54 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - Sri Rama Simple AR Vision</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- MediaPipe Hands & Camera Utils -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-
+    <title>FIZONYX - Doctor Strange Eye of Agamotto AR Engine V7</title>
     <style>
-        body {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            background-color: #000;
-            font-family: sans-serif;
+            user-select: none;
         }
-        canvas {
-            transform: scaleX(-1); /* Mirror camera */
-            position: absolute;
-            top: 0;
-            left: 0;
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+        }
+
+        #container {
+            position: relative;
             width: 100vw;
             height: 100vh;
-            object-fit: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        video { display: none; }
+
+        video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            filter: brightness(0.85) contrast(1.2);
+        }
+
+        canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            pointer-events: none;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(5, 15, 10, 0.85);
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            backdrop-filter: blur(12px);
+            padding: 18px 22px;
+            border-radius: 14px;
+            box-shadow: 0 0 25px rgba(0, 255, 100, 0.35);
+            max-width: 380px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #00ff88;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.7);
+        }
+
+        p {
+            font-size: 0.8rem;
+            color: #d1d5db;
+            margin-bottom: 12px;
+        }
+
+        .status-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ef4444;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background-color: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .instructions {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 255, 136, 0.2);
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+        }
+
+        .instructions ul {
+            padding-left: 16px;
+            margin-top: 4px;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 255, 136, 0.2);
+            border-radius: 50%;
+            border-top-color: #00ff88;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
+
+    <!-- MediaPipe Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
-<body class="text-white select-none">
+<body>
 
-    <!-- Status UI -->
-    <div class="absolute top-4 left-4 z-20 bg-black/80 border border-amber-500/50 p-4 rounded-xl max-w-xs pointer-events-none">
-        <h1 class="text-lg font-bold text-amber-400">SRI RAMA AR - SIMPLE</h1>
-        <p id="status-text" class="text-xs text-cyan-300 mt-1 font-mono">Show your hand to camera...</p>
-    </div>
+    <div id="container">
+        <video id="input-video" playsinline></video>
+        <canvas id="output-canvas"></canvas>
 
-    <video id="webcam" playsinline></video>
-    <div style="position: relative; width: 100vw; height: 100vh;">
-        <canvas id="output_canvas"></canvas>
+        <div id="loading">
+            <div class="spinner"></div>
+            <p id="loading-text">Calibrating Eye of Agamotto Engine V7...</p>
+        </div>
+
+        <div id="ui-overlay">
+            <h1>Eye of Agamotto V7</h1>
+            <p>Time Stone Relic & Gesture Unlocking System</p>
+            
+            <div class="status-box">
+                <div class="status-item">
+                    <div id="status-dot" class="dot"></div>
+                    <span id="status-text">Hand Tracking Offline</span>
+                </div>
+                <div class="status-item">
+                    <div id="relic-dot" class="dot"></div>
+                    <span id="relic-text">Relic Status: Dormant</span>
+                </div>
+            </div>
+
+            <div class="instructions">
+                <strong>Time Spell Gestures:</strong>
+                <ul>
+                    <li><strong>Summon Relic:</strong> Form a Diamond/Eye mudra with index fingers & thumbs near chest.</li>
+                    <li><strong>Unlock Time Stone:</strong> Spread hands outward to open the eye relic and release the Infinity Stone!</li>
+                    <li><strong>Time Shields:</strong> Unlocking the stone automatically equips glowing Agamotto Time Shields.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script>
-        const videoElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('output_canvas');
+        /**
+         * FIZONYX Senior Software Engineering Team
+         * Doctor Strange Eye of Agamotto & Time Stone Relic AR Engine - Version 7
+         */
+
+        const videoElement = document.getElementById('input-video');
+        const canvasElement = document.getElementById('output-canvas');
         const canvasCtx = canvasElement.getContext('2d');
+
+        const statusDot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
+        const relicDot = document.getElementById('relic-dot');
+        const relicText = document.getElementById('relic-text');
+        const loadingScreen = document.getElementById('loading');
+
+        // Relic & Spell States
+        let relicState = 'none'; // 'closed', 'opening', 'unlocked'
+        let eyeOpenProgress = 0;
+        let timeStoneGlow = 0;
+        let shieldDuration = 0;
+        let relicCenter = { x: 0, y: 0 };
+
+        // Rotation trackers
+        let shieldRotation = 0;
 
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
@@ -59,89 +216,301 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        function onResults(results) {
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                statusText.innerText = `Hand Tracked: ${results.multiHandLandmarks.length} Found ✅`;
-                statusText.className = "text-xs text-emerald-400 mt-1 font-mono font-bold";
-
-                for (const landmarks of results.multiHandLandmarks) {
-                    // 1. Draw Doctor Strange Style Hand Skeleton (Cyan & Pink Dots)
-                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FFCC', lineWidth: 3 });
-                    drawLandmarks(canvasCtx, landmarks, { color: '#FF0055', lineWidth: 1, radius: 5 });
-
-                    // Fingertips extra glowing dots
-                    [4, 8, 12, 16, 20].forEach(idx => {
-                        const pt = landmarks[idx];
-                        canvasCtx.save();
-                        canvasCtx.fillStyle = '#00FFFF';
-                        canvasCtx.shadowColor = '#00FFFF';
-                        canvasCtx.shadowBlur = 15;
-                        canvasCtx.beginPath();
-                        canvasCtx.arc(pt.x * canvasElement.width, pt.y * canvasElement.height, 7, 0, Math.PI * 2);
-                        canvasCtx.fill();
-                        canvasCtx.restore();
+        // 1. Particle System for Time Stone Magic
+        class TimeSparkSystem {
+            constructor(max = 600) {
+                this.particles = [];
+                for (let i = 0; i < max; i++) {
+                    this.particles.push({
+                        x: 0, y: 0, vx: 0, vy: 0,
+                        life: 0, size: 0, color: '#00ff88', active: false
                     });
-
-                    // 2. Attach a Simple Graphical Bow (కోదండం బొమ్మ) on Palm (Wrist / Middle MCP)
-                    const wrist = landmarks[0];
-                    const middleMCP = landmarks[9];
-                    const wx = wrist.x * canvasElement.width;
-                    const wy = wrist.y * canvasElement.height;
-                    const mx = middleMCP.x * canvasElement.width;
-                    const my = middleMCP.y * canvasElement.height;
-
-                    // Center point for bow near hand
-                    const cx = (wx + mx) / 2;
-                    const cy = (wy + my) / 2;
-
-                    canvasCtx.save();
-                    canvasCtx.shadowColor = '#FFD700';
-                    canvasCtx.shadowBlur = 20;
-
-                    // Simple Bow Arc
-                    canvasCtx.strokeStyle = '#FFD700';
-                    canvasCtx.lineWidth = 10;
-                    canvasCtx.beginPath();
-                    canvasCtx.arc(cx, cy, 100, -Math.PI * 0.4, Math.PI * 0.4, false);
-                    canvasCtx.stroke();
-
-                    // Bow String
-                    canvasCtx.strokeStyle = '#FFFFFF';
-                    canvasCtx.lineWidth = 2;
-                    canvasCtx.beginPath();
-                    const topY = cy + Math.sin(-Math.PI * 0.4) * 100;
-                    const topX = cx + Math.cos(-Math.PI * 0.4) * 100;
-                    const botY = cy + Math.sin(Math.PI * 0.4) * 100;
-                    const botX = cx + Math.cos(Math.PI * 0.4) * 100;
-                    
-                    canvasCtx.moveTo(topX, topY);
-                    canvasCtx.lineTo(botX, botY);
-                    canvasCtx.stroke();
-
-                    canvasCtx.restore();
                 }
-            } else {
-                statusText.innerText = "No hand detected. Show hand!";
-                statusText.className = "text-xs text-red-400 mt-1 font-mono";
+            }
+
+            spawn(x, y, count = 2) {
+                let spawned = 0;
+                for (let p of this.particles) {
+                    if (!p.active) {
+                        p.x = x + (Math.random() - 0.5) * 10;
+                        p.y = y + (Math.random() - 0.5) * 10;
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = Math.random() * 4 + 1.5;
+                        p.vx = Math.cos(angle) * speed;
+                        p.vy = Math.sin(angle) * speed;
+                        p.life = 1.0;
+                        p.size = Math.random() * 3.5 + 1.5;
+                        p.color = Math.random() > 0.3 ? '#00ff88' : '#e0fffa';
+                        p.active = true;
+                        spawned++;
+                        if (spawned >= count) break;
+                    }
+                }
+            }
+
+            updateAndRender(ctx) {
+                ctx.save();
+                for (let p of this.particles) {
+                    if (p.active) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.life -= 0.04;
+
+                        if (p.life <= 0) {
+                            p.active = false;
+                            continue;
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                        ctx.fillStyle = p.color;
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = p.color;
+                        ctx.globalAlpha = p.life;
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
             }
         }
 
+        const sparks = new TimeSparkSystem();
+
+        // 2. Render Eye of Agamotto Locket with Dynamic Aperture Mechanism
+        function renderEyeOfAgamotto(ctx, x, y, size, openRatio) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Relic Pendant Body (Ancient Gold / Bronze)
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 15 * openRatio;
+
+            // Outer Eye Shaped Shell
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size * 1.3, size * 0.8, 0, 0, Math.PI * 2);
+            ctx.fillStyle = '#1c150a';
+            ctx.strokeStyle = '#cda851';
+            ctx.lineWidth = 4;
+            ctx.fill();
+            ctx.stroke();
+
+            // Intricate Bronze Filigree Lines
+            ctx.beginPath();
+            ctx.arc(0, 0, size * 0.65, 0, Math.PI * 2);
+            ctx.strokeStyle = '#8c6d23';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Eye Aperture Mechanism (Opens based on openRatio)
+            const gap = openRatio * size * 0.65;
+            
+            // Top Eyelid / Shutter
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(-size, -size * 0.8 - gap, size * 2, size * 0.8);
+            ctx.clip();
+            ctx.beginPath();
+            ctx.ellipse(0, -gap, size * 0.8, size * 0.45, 0, 0, Math.PI);
+            ctx.fillStyle = '#b89033';
+            ctx.strokeStyle = '#f5d77f';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Bottom Eyelid / Shutter
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(-size, gap, size * 2, size * 0.8);
+            ctx.clip();
+            ctx.beginPath();
+            ctx.ellipse(0, gap, size * 0.8, size * 0.45, 0, Math.PI, Math.PI * 2);
+            ctx.fillStyle = '#9e7924';
+            ctx.strokeStyle = '#f5d77f';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Central Glowing Infinity Time Stone (Green Gem)
+            if (openRatio > 0.1) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 0.35 * openRatio, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#00ff88';
+                ctx.shadowBlur = 30 * openRatio;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 0.28 * openRatio, 0, Math.PI * 2);
+                ctx.fillStyle = '#00ff88';
+                ctx.fill();
+
+                // Mystic Light Rays
+                const rays = 8;
+                ctx.strokeStyle = `rgba(0, 255, 136, ${openRatio * 0.8})`;
+                ctx.lineWidth = 2;
+                for (let i = 0; i < rays; i++) {
+                    const ang = (i * Math.PI * 2) / rays + Date.now() * 0.003;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(Math.cos(ang) * size * 1.5 * openRatio, Math.sin(ang) * size * 1.5 * openRatio);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                sparks.spawn(x, y, 3);
+            }
+
+            ctx.restore();
+        }
+
+        // 3. Render Agamotto Time Stone Shield
+        function renderTimeShield(ctx, x, y, radius) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            shieldRotation += 0.03;
+
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 28;
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.85, 0, Math.PI * 2);
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.save();
+            ctx.rotate(shieldRotation);
+            ctx.strokeStyle = '#aaffdd';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                ctx.rotate(Math.PI / 6);
+                const side = radius * 1.05;
+                ctx.strokeRect(-side / 2, -side / 2, side, side);
+            }
+            ctx.restore();
+
+            sparks.spawn(x, y, 2);
+            ctx.restore();
+        }
+
+        // 4. MediaPipe Gesture Processing Loop
+        function onResults(results) {
+            if (loadingScreen.style.display !== 'none') {
+                loadingScreen.style.display = 'none';
+            }
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                statusDot.classList.add('active');
+                statusText.innerText = `Hands Active (${results.multiHandLandmarks.length})`;
+
+                // Render Tracking Points
+                results.multiHandLandmarks.forEach((landmarks) => {
+                    landmarks.forEach((lm, idx) => {
+                        const px = lm.x * canvasElement.width;
+                        const py = lm.y * canvasElement.height;
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(px, py, [4, 8].includes(idx) ? 5 : 3.5, 0, Math.PI * 2);
+                        canvasCtx.fillStyle = [4, 8].includes(idx) ? '#00ffff' : '#ff003c';
+                        canvasCtx.shadowColor = '#00ff88';
+                        canvasCtx.shadowBlur = 6;
+                        canvasCtx.fill();
+                    });
+                });
+
+                if (results.multiHandLandmarks.length >= 2) {
+                    const hand1 = results.multiHandLandmarks[0];
+                    const hand2 = results.multiHandLandmarks[1];
+
+                    const indexTip1 = { x: hand1[8].x * canvasElement.width, y: hand1[8].y * canvasElement.height };
+                    const indexTip2 = { x: hand2[8].x * canvasElement.width, y: hand2[8].y * canvasElement.height };
+                    const thumbTip1 = { x: hand1[4].x * canvasElement.width, y: hand1[4].y * canvasElement.height };
+                    const thumbTip2 = { x: hand2[4].x * canvasElement.width, y: hand2[4].y * canvasElement.height };
+
+                    const indexDist = Math.hypot(indexTip1.x - indexTip2.x, indexTip1.y - indexTip2.y);
+                    const thumbDist = Math.hypot(thumbTip1.x - thumbTip2.x, thumbTip1.y - thumbTip2.y);
+
+                    // Check Eye / Diamond Mudra (Tips Touching)
+                    if (indexDist < 80 && thumbDist < 80) {
+                        relicState = 'closed';
+                        relicDot.classList.add('active');
+                        relicText.innerText = "Eye of Agamotto Summoned!";
+                        
+                        // Center between diamond tips
+                        relicCenter = {
+                            x: (indexTip1.x + indexTip2.x + thumbTip1.x + thumbTip2.x) / 4,
+                            y: (indexTip1.y + indexTip2.y + thumbTip1.y + thumbTip2.y) / 4
+                        };
+
+                        eyeOpenProgress = Math.max(0, eyeOpenProgress - 0.08);
+                    } 
+                    // Check Unlocking Separation Gesture (Pulling outward)
+                    else if (relicState === 'closed' || relicState === 'opening' || relicState === 'unlocked') {
+                        if (indexDist > 120 && thumbDist > 120) {
+                            relicState = 'unlocked';
+                            relicText.innerText = "Time Stone Unlocked!";
+                            eyeOpenProgress = Math.min(1.0, eyeOpenProgress + 0.06);
+                            shieldDuration = 250; // Active shield countdown frames
+                        }
+                    }
+
+                    // Render Relic when active
+                    if (relicState !== 'none') {
+                        renderEyeOfAgamotto(canvasCtx, relicCenter.x, relicCenter.y, 65, eyeOpenProgress);
+                    }
+                }
+
+                // Render Time Shields when unlocked
+                if (shieldDuration > 0) {
+                    shieldDuration--;
+                    results.multiHandLandmarks.forEach((landmarks) => {
+                        const palmCenter = {
+                            x: landmarks[9].x * canvasElement.width,
+                            y: landmarks[9].y * canvasElement.height
+                        };
+                        const wrist = {
+                            x: landmarks[0].x * canvasElement.width,
+                            y: landmarks[0].y * canvasElement.height
+                        };
+                        const handScale = Math.hypot(palmCenter.x - wrist.x, palmCenter.y - wrist.y);
+                        renderTimeShield(canvasCtx, palmCenter.x, palmCenter.y, handScale * 1.9);
+                    });
+                }
+            } else {
+                statusDot.classList.remove('active');
+                statusText.innerText = "Bring hands into view...";
+            }
+
+            sparks.updateAndRender(canvasCtx);
+            canvasCtx.restore();
+        }
+
+        // Initialize MediaPipe Hands
         const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.5net/npm/@mediapipe/hands/${file}`.replace('.5', '')
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
         hands.setOptions({
             maxNumHands: 2,
             modelComplexity: 1,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.6
+            minDetectionConfidence: 0.75,
+            minTrackingConfidence: 0.75
         });
 
         hands.onResults(onResults);
 
+        // Webcam Setup
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({ image: videoElement });
@@ -150,9 +519,9 @@
             height: 720
         });
 
-        camera.start().catch(err => {
-            console.error("Camera Error:", err);
-            statusText.innerText = "Camera Permission Denied!";
+        camera.start().catch((err) => {
+            console.error("Camera access failed:", err);
+            document.getElementById('loading-text').innerText = "Please grant camera permissions.";
         });
     </script>
 </body>
