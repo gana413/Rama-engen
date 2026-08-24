@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - The Ancient One Sacred Geometry AR Engine</title>
+    <title>FIZONYX - The Ancient One Real-Time Spell Casting Engine</title>
     <style>
         * {
             box-sizing: border-box;
@@ -47,7 +47,7 @@
             pointer-events: none;
         }
 
-        /* Compact Top-Right Square HUD */
+        /* Minimal Status Indicator */
         #ui-overlay {
             position: absolute;
             top: 15px;
@@ -56,17 +56,17 @@
             background: rgba(10, 10, 15, 0.88);
             border: 1px solid rgba(255, 170, 0, 0.4);
             backdrop-filter: blur(10px);
-            padding: 12px;
+            padding: 10px 14px;
             border-radius: 12px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-            width: 165px;
+            width: 175px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .title-badge {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: #ffaa00;
             font-weight: 800;
             text-transform: uppercase;
@@ -74,7 +74,14 @@
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 4px;
-            text-shadow: 0 0 6px rgba(255, 170, 0, 0.6);
+        }
+
+        .phase-text {
+            font-size: 0.65rem;
+            color: #ffffff;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 0 0 6px #ffaa00;
         }
 
         .status-indicators {
@@ -87,11 +94,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 3px;
+            gap: 2px;
         }
 
         .dot-label {
-            font-size: 0.58rem;
+            font-size: 0.55rem;
             color: #888888;
             text-transform: uppercase;
         }
@@ -110,36 +117,6 @@
             box-shadow: 0 0 8px #00ff66;
         }
 
-        .controls-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 5px;
-        }
-
-        .btn {
-            background: #181822;
-            color: #dddddd;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 6px;
-            border-radius: 6px;
-            font-size: 0.68rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-        }
-
-        .btn:hover {
-            transform: scale(1.02);
-        }
-
-        .btn-ancient {
-            background: linear-gradient(135deg, #774400, #ffaa00);
-            border-color: #ffcc00;
-            color: #000000;
-            box-shadow: 0 0 8px rgba(255, 170, 0, 0.4);
-        }
-
         #loading {
             position: absolute;
             top: 50%;
@@ -150,13 +127,13 @@
         }
 
         .spinner {
-            width: 55px;
-            height: 55px;
+            width: 50px;
+            height: 50px;
             border: 3px solid rgba(255, 170, 0, 0.2);
             border-radius: 50%;
             border-top-color: #ffaa00;
             animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px auto;
+            margin: 0 auto 10px auto;
         }
 
         @keyframes spin {
@@ -176,33 +153,30 @@
 
         <div id="loading">
             <div class="spinner"></div>
-            <p id="loading-text" style="font-size: 0.85rem; color: #ffaa00;">Initializing Ancient One Sorcery...</p>
+            <p id="loading-text" style="font-size: 0.8rem; color: #ffaa00;">Channeling Mystic Multiverse Energy...</p>
         </div>
 
         <div id="ui-overlay">
-            <div class="title-badge">Ancient Sorcery</div>
+            <div class="title-badge">Ancient One Spell</div>
+            <div id="phase-display" class="phase-text">Phase: Waiting for Hands</div>
             
             <div class="status-indicators">
                 <div class="dot-group">
                     <div id="status-dot" class="dot"></div>
-                    <span class="dot-label">Hand</span>
+                    <span class="dot-label">Track</span>
                 </div>
                 <div class="dot-group">
                     <div id="spell-dot" class="dot"></div>
-                    <span class="dot-label">Spell</span>
+                    <span class="dot-label">Cast</span>
                 </div>
-            </div>
-
-            <div class="controls-grid">
-                <button class="btn btn-ancient" onclick="toggleAncientShield()">Toggle Array</button>
             </div>
         </div>
     </div>
 
     <script>
         /**
-         * FIZONYX Senior Software Engineering Team
-         * The Ancient One Complex Geometry Array & Motion Spell Engine
+         * FIZONYX - The Ancient One Step-by-Step Spell Manifestation Engine
+         * Stage 1: Line -> Stage 2: Circle -> Stage 3: Wheel Glyphs -> Stage 4: Square Lock Grid
          */
 
         const videoElement = document.getElementById('input-video');
@@ -211,16 +185,20 @@
 
         const statusDot = document.getElementById('status-dot');
         const spellDot = document.getElementById('spell-dot');
+        const phaseDisplay = document.getElementById('phase-display');
         const loadingScreen = document.getElementById('loading');
 
-        let isAncientShieldActive = false;
-        let manualShieldTimer = null;
+        // Spell Progression States (0 = None, 1 = Vertical Beam, 2 = Spun Wheel, 3 = Mandala Core, 4 = Square Lock Array)
+        let spellStage = 0;
+        let lineLength = 0;
+        let wheelRadius = 0;
+        let squareScale = 0;
+        let rotationAccumulator = 0;
+        let lastAngle = null;
         let arrayRotation = 0;
-        let arrayScale = 0;
 
-        // Fingertip drawing trails
-        const fingerTrails = [];
-        const MAX_TRAIL = 20;
+        let spellOrigin = { x: 0, y: 0 };
+        let handPrevDistance = null;
 
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
@@ -229,23 +207,9 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        function toggleAncientShield() {
-            isAncientShieldActive = !isAncientShieldActive;
-            if (isAncientShieldActive) {
-                spellDot.classList.add('active');
-                if (manualShieldTimer) clearTimeout(manualShieldTimer);
-                manualShieldTimer = setTimeout(() => {
-                    isAncientShieldActive = false;
-                    spellDot.classList.remove('active');
-                }, 10000);
-            } else {
-                spellDot.classList.remove('active');
-            }
-        }
-
-        // Particle System for Fiery Mandala Sparks
-        class EldritchSparks {
-            constructor(max = 800) {
+        // High Speed Particle Engine
+        class FieryParticleEngine {
+            constructor(max = 1000) {
                 this.particles = [];
                 for (let i = 0; i < max; i++) {
                     this.particles.push({
@@ -259,15 +223,15 @@
                 let spawned = 0;
                 for (let p of this.particles) {
                     if (!p.active) {
-                        p.x = x + (Math.random() - 0.5) * 8;
-                        p.y = y + (Math.random() - 0.5) * 8;
+                        p.x = x + (Math.random() - 0.5) * 6;
+                        p.y = y + (Math.random() - 0.5) * 6;
                         const ang = Math.random() * Math.PI * 2;
                         const spd = Math.random() * 4 + 1.5;
                         p.vx = Math.cos(ang) * spd;
                         p.vy = Math.sin(ang) * spd;
                         p.life = 1.0;
                         p.size = Math.random() * 3 + 1.5;
-                        p.color = Math.random() > 0.3 ? '#ffaa00' : '#ffee88';
+                        p.color = Math.random() > 0.4 ? '#ffaa00' : '#ffee77';
                         p.active = true;
                         spawned++;
                         if (spawned >= count) break;
@@ -281,7 +245,7 @@
                     if (p.active) {
                         p.x += p.vx;
                         p.y += p.vy;
-                        p.life -= 0.035;
+                        p.life -= 0.04;
 
                         if (p.life <= 0) {
                             p.active = false;
@@ -292,7 +256,7 @@
                         ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
                         ctx.fillStyle = p.color;
                         ctx.shadowBlur = 8;
-                        ctx.shadowColor = '#ff6600';
+                        ctx.shadowColor = '#ff5500';
                         ctx.globalAlpha = p.life;
                         ctx.fill();
                     }
@@ -301,147 +265,169 @@
             }
         }
 
-        const sparkEngine = new EldritchSparks();
+        const sparks = new FieryParticleEngine();
 
-        // 1. Draw Fiery Motion Trails (Ancient One Drawing Lines Gesture)
-        function renderFingerTrails(ctx, points) {
-            if (points.length < 2) return;
+        // 1. Stage 1: Vertical Beam / Line Drawing
+        function drawVerticalBeam(ctx, cx, cy, len) {
             ctx.save();
-            ctx.shadowColor = '#ff6600';
-            ctx.shadowBlur = 15;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            for (let i = 1; i < points.length; i++) {
-                const alpha = i / points.length;
-                ctx.beginPath();
-                ctx.moveTo(points[i - 1].x, points[i - 1].y);
-                ctx.lineTo(points[i].x, points[i].y);
-                ctx.strokeStyle = `rgba(255, 170, 0, ${alpha})`;
-                ctx.lineWidth = alpha * 6;
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-
-        // 2. Sub-Mandala Renderer (for the outer 6 surrounding circles)
-        function drawSatelliteMandala(ctx, x, y, r, rot) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rot);
-
-            ctx.strokeStyle = '#ffaa00';
             ctx.shadowColor = '#ff5500';
-            ctx.shadowBlur = 10;
-            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 20;
 
-            // Outer Ring
+            const half = len / 2;
             ctx.beginPath();
-            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.moveTo(cx, cy - half);
+            ctx.lineTo(cx, cy + half);
+            ctx.strokeStyle = '#ff9900';
+            ctx.lineWidth = 6;
             ctx.stroke();
 
-            // Inner Star/Square
-            const side = r * 1.1;
-            ctx.strokeRect(-side / 2, -side / 2, side, side);
-            ctx.rotate(Math.PI / 4);
-            ctx.strokeRect(-side / 2, -side / 2, side, side);
-
-            // Center Point
             ctx.beginPath();
-            ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
+            ctx.moveTo(cx, cy - half);
+            ctx.lineTo(cx, cy + half);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
 
+            sparks.spawn(cx, cy - half, 2);
+            sparks.spawn(cx, cy + half, 2);
             ctx.restore();
         }
 
-        // 3. The Ancient One Sacred Geometry Array (Master Multiverse Shield)
-        function renderAncientOneArray(ctx, cx, cy, radius) {
+        // 2. Stage 2 & 3: Rotating Circles & Central Mandala Wheels
+        function drawSpunWheel(ctx, cx, cy, radius, showInnerCore = false) {
             ctx.save();
             ctx.translate(cx, cy);
 
-            arrayRotation += 0.02;
+            arrayRotation += 0.035;
 
             ctx.shadowColor = '#ff6600';
-            ctx.shadowBlur = 25;
+            ctx.shadowBlur = 20;
             ctx.strokeStyle = '#ffaa00';
             ctx.lineWidth = 2.5;
 
-            // Grand Outer Ring
+            // Concentric Spun Rings
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Secondary Intersecting Perimeter Ring
             ctx.beginPath();
-            ctx.arc(0, 0, radius * 0.82, 0, Math.PI * 2);
+            ctx.arc(0, 0, radius * 0.85, 0, Math.PI * 2);
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // Large Interlocking Diamonds / 8-Pointed Star
+            // Inner Rotating Diamonds
             ctx.save();
             ctx.rotate(arrayRotation);
             ctx.strokeStyle = '#ffcc00';
             ctx.lineWidth = 2;
-            const bigSide = radius * 1.15;
+            const side = radius * 1.1;
             for (let i = 0; i < 2; i++) {
                 ctx.rotate(Math.PI / 4);
-                ctx.strokeRect(-bigSide / 2, -bigSide / 2, bigSide, bigSide);
+                ctx.strokeRect(-side / 2, -side / 2, side, side);
             }
             ctx.restore();
 
-            // Central Sacred Core
-            ctx.save();
-            ctx.rotate(-arrayRotation * 1.5);
-            ctx.beginPath();
-            ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
-            ctx.stroke();
+            // Stage 3: Inner Sacred Geometry Satellites
+            if (showInnerCore) {
+                const satellites = 6;
+                const satDist = radius * 0.72;
+                const satRadius = radius * 0.22;
 
-            // 6-Pointed Star inside Core
-            ctx.strokeStyle = '#ffeeaa';
-            ctx.lineWidth = 1.5;
-            for (let i = 0; i < 2; i++) {
-                ctx.rotate(Math.PI / 3);
-                ctx.beginPath();
-                for (let p = 0; p < 3; p++) {
-                    const ang = (p * 2 * Math.PI / 3) - Math.PI / 2;
-                    const px = Math.cos(ang) * (radius * 0.42);
-                    const py = Math.sin(ang) * (radius * 0.42);
-                    if (p === 0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
+                for (let s = 0; s < satellites; s++) {
+                    const angle = (s * 2 * Math.PI / satellites) + (arrayRotation * 0.8);
+                    const sx = Math.cos(angle) * satDist;
+                    const sy = Math.sin(angle) * satDist;
+
+                    ctx.save();
+                    ctx.translate(sx, sy);
+                    ctx.rotate(-arrayRotation * 2);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, satRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#ffee88';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    const sSide = satRadius * 1.1;
+                    ctx.strokeRect(-sSide/2, -sSide/2, sSide, sSide);
+                    ctx.restore();
                 }
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.restore();
 
-            // 6 Outer Surrounding Satellite Mandalas (as seen in the movie scene)
-            const numSatellites = 6;
-            const satelliteDist = radius * 0.72;
-            const satelliteRadius = radius * 0.22;
-
-            for (let s = 0; s < numSatellites; s++) {
-                const angle = (s * 2 * Math.PI / numSatellites) + (arrayRotation * 0.6);
-                const sx = Math.cos(angle) * satelliteDist;
-                const sy = Math.sin(angle) * satelliteDist;
-
-                drawSatelliteMandala(ctx, sx, sy, satelliteRadius, -arrayRotation * 2);
-
-                // Connecting Web Lines from Center to Satellites
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(sx, sy);
-                ctx.strokeStyle = 'rgba(255, 170, 0, 0.4)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+                // Center 6-Pointed Star
+                ctx.save();
+                ctx.rotate(-arrayRotation);
+                for (let i = 0; i < 2; i++) {
+                    ctx.rotate(Math.PI / 3);
+                    ctx.beginPath();
+                    for (let p = 0; p < 3; p++) {
+                        const ang = (p * 2 * Math.PI / 3) - Math.PI / 2;
+                        const px = Math.cos(ang) * (radius * 0.38);
+                        const py = Math.sin(ang) * (radius * 0.38);
+                        if (p === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                ctx.restore();
             }
 
-            // Spawn sparks at center and perimeter
-            sparkEngine.spawn(cx, cy, 3);
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 2; i++) {
                 const a = Math.random() * Math.PI * 2;
-                sparkEngine.spawn(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, 1);
+                sparks.spawn(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, 1);
             }
+
+            ctx.restore();
+        }
+
+        // 3. Stage 4: The Sudden Square Lock Grid Box (Ancient One Signature Finish)
+        function drawSquareLockBox(ctx, cx, cy, size) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            ctx.shadowColor = '#ff4400';
+            ctx.shadowBlur = 30;
+            ctx.strokeStyle = '#ffbb00';
+            ctx.lineWidth = 4;
+
+            // Outer Radiant Boundary Box
+            ctx.strokeRect(-size / 2, -size / 2, size, size);
+
+            // Inner Offset Square Frame
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-size * 0.46, -size * 0.46, size * 0.92, size * 0.92);
+
+            // 4 Corner Seals / Glyphs
+            const half = size / 2;
+            const corners = [
+                [-half, -half], [half, -half],
+                [half, half], [-half, half]
+            ];
+
+            corners.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#ffea00';
+                ctx.shadowBlur = 15;
+                ctx.fill();
+
+                // Radiating Corner Diagonal Lines
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x * 0.7, y * 0.7);
+                ctx.strokeStyle = '#ff9900';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Diamond Square Grid inside Box
+            ctx.save();
+            ctx.rotate(Math.PI / 4);
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 2.5;
+            const diagSide = size * 0.707;
+            ctx.strokeRect(-diagSide / 2, -diagSide / 2, diagSide, diagSide);
+            ctx.restore();
 
             ctx.restore();
         }
@@ -458,7 +444,7 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 statusDot.classList.add('active');
 
-                // Render Tracking Dots
+                // Draw Red/Cyan Joint Dots
                 results.multiHandLandmarks.forEach((landmarks) => {
                     landmarks.forEach((lm, idx) => {
                         const px = lm.x * canvasElement.width;
@@ -472,16 +458,6 @@
                     });
                 });
 
-                // Fingertip drawing trail on leading hand
-                const leadIndex = {
-                    x: results.multiHandLandmarks[0][8].x * canvasElement.width,
-                    y: results.multiHandLandmarks[0][8].y * canvasElement.height
-                };
-                fingerTrails.push(leadIndex);
-                if (fingerTrails.length > MAX_TRAIL) fingerTrails.shift();
-                renderFingerTrails(canvasCtx, fingerTrails);
-
-                // Two-Hand Gesture Detection for Array Spell
                 if (results.multiHandLandmarks.length >= 2) {
                     const hand1 = results.multiHandLandmarks[0];
                     const hand2 = results.multiHandLandmarks[1];
@@ -489,33 +465,85 @@
                     const palm1 = { x: hand1[9].x * canvasElement.width, y: hand1[9].y * canvasElement.height };
                     const palm2 = { x: hand2[9].x * canvasElement.width, y: hand2[9].y * canvasElement.height };
 
-                    const handDistance = Math.hypot(palm1.x - palm2.x, palm1.y - palm2.y);
-                    const midPoint = { x: (palm1.x + palm2.x) / 2, y: (palm1.y + palm2.y) / 2 };
+                    const currentDistance = Math.hypot(palm1.x - palm2.x, palm1.y - palm2.y);
+                    const currentCenter = { x: (palm1.x + palm2.x) / 2, y: (palm1.y + palm2.y) / 2 };
 
-                    // Open Stance / Palms Apart (Ancient One Manifestation Pose)
-                    const isHandsSpread = handDistance > 200 && handDistance < 600;
-
-                    if (isHandsSpread || isAncientShieldActive) {
-                        spellDot.classList.add('active');
-                        arrayScale += (Math.min(320, handDistance * 0.85) - arrayScale) * 0.1;
-                        renderAncientOneArray(canvasCtx, midPoint.x, midPoint.y, arrayScale);
-                    } else {
-                        arrayScale += (0 - arrayScale) * 0.15;
-                        if (!isAncientShieldActive) spellDot.classList.remove('active');
+                    // 1. Stage 1: Hands Aligned Vertically (Drawing the Line)
+                    const isVertical = Math.abs(palm1.x - palm2.x) < 90 && Math.abs(palm1.y - palm2.y) > 120;
+                    
+                    if (isVertical && spellStage === 0) {
+                        spellStage = 1;
+                        spellOrigin = currentCenter;
+                        lineLength = Math.abs(palm1.y - palm2.y);
                     }
-                } else if (isAncientShieldActive) {
-                    const palm = {
-                        x: results.multiHandLandmarks[0][9].x * canvasElement.width,
-                        y: results.multiHandLandmarks[0][9].y * canvasElement.height
-                    };
-                    renderAncientOneArray(canvasCtx, palm.x, palm.y, 220);
+
+                    // 2. Stage 2 & 3: Rotating Hands around center
+                    const curAngle = Math.atan2(palm2.y - spellOrigin.y, palm2.x - spellOrigin.x);
+
+                    if (spellStage >= 1 && spellStage < 4) {
+                        if (lastAngle !== null) {
+                            let delta = curAngle - lastAngle;
+                            if (delta > Math.PI) delta -= Math.PI * 2;
+                            if (delta < -Math.PI) delta += Math.PI * 2;
+                            rotationAccumulator += Math.abs(delta);
+
+                            if (rotationAccumulator > 1.2 && spellStage === 1) {
+                                spellStage = 2; // Spun into Wheel
+                            }
+                            if (rotationAccumulator > 3.5 && spellStage === 2) {
+                                spellStage = 3; // Wheel Expanded with Inner Satellites
+                            }
+                        }
+                        lastAngle = curAngle;
+                        wheelRadius = Math.min(240, 50 + rotationAccumulator * 35);
+                    }
+
+                    // 3. Stage 4: Sudden Push Apart Gesture (రెండు చేతులు సడన్‌గా విడదీయడం)
+                    if (handPrevDistance !== null && spellStage >= 2) {
+                        const separationSpeed = currentDistance - handPrevDistance;
+                        if (separationSpeed > 35 && currentDistance > 280) {
+                            spellStage = 4; // Manifest Square Lock Box Array
+                            squareScale = Math.min(480, currentDistance * 1.3);
+                        }
+                    }
+                    handPrevDistance = currentDistance;
+
+                    // Update Status HUD
+                    spellDot.classList.add('active');
+                    if (spellStage === 1) phaseDisplay.innerText = "Phase 1: Vertical Beam";
+                    else if (spellStage === 2) phaseDisplay.innerText = "Phase 2: Spun Wheel";
+                    else if (spellStage === 3) phaseDisplay.innerText = "Phase 3: Sacred Mandala";
+                    else if (spellStage === 4) phaseDisplay.innerText = "Phase 4: Square Locked!";
+
+                    // Render Step-by-Step Magic
+                    if (spellStage === 1) {
+                        drawVerticalBeam(canvasCtx, spellOrigin.x, spellOrigin.y, lineLength);
+                    } else if (spellStage === 2) {
+                        drawSpunWheel(canvasCtx, spellOrigin.x, spellOrigin.y, wheelRadius, false);
+                    } else if (spellStage === 3) {
+                        drawSpunWheel(canvasCtx, spellOrigin.x, spellOrigin.y, wheelRadius, true);
+                    } else if (spellStage === 4) {
+                        drawSpunWheel(canvasCtx, currentCenter.x, currentCenter.y, 220, true);
+                        drawSquareLockBox(canvasCtx, currentCenter.x, currentCenter.y, squareScale);
+                    }
+                } else {
+                    lastAngle = null;
+                    handPrevDistance = null;
+                    // Reset if hands disappear
+                    if (spellStage !== 4) {
+                        spellStage = 0;
+                        rotationAccumulator = 0;
+                        spellDot.classList.remove('active');
+                        phaseDisplay.innerText = "Phase: Waiting for Hands";
+                    }
                 }
             } else {
                 statusDot.classList.remove('active');
-                fingerTrails.length = 0;
+                spellDot.classList.remove('active');
+                phaseDisplay.innerText = "Phase: Bring Hands into View";
             }
 
-            sparkEngine.updateAndRender(canvasCtx);
+            sparks.updateAndRender(canvasCtx);
             canvasCtx.restore();
         }
 
