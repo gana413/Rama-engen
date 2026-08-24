@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - Doctor Strange AR Engine V7 (Darkhold Edition)</title>
+    <title>FIZONYX - The Ancient One Sacred Geometry AR Engine</title>
     <style>
         * {
             box-sizing: border-box;
@@ -47,34 +47,34 @@
             pointer-events: none;
         }
 
-        /* Compact Square UI at Top-Right Corner */
+        /* Compact Top-Right Square HUD */
         #ui-overlay {
             position: absolute;
             top: 15px;
             right: 15px;
             z-index: 10;
             background: rgba(10, 10, 15, 0.88);
-            border: 1px solid rgba(255, 60, 60, 0.4);
+            border: 1px solid rgba(255, 170, 0, 0.4);
             backdrop-filter: blur(10px);
             padding: 12px;
             border-radius: 12px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-            width: 160px;
+            width: 165px;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
         .title-badge {
-            font-size: 0.72rem;
-            color: #ff3344;
+            font-size: 0.7rem;
+            color: #ffaa00;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 4px;
-            text-shadow: 0 0 6px rgba(255, 50, 50, 0.6);
+            text-shadow: 0 0 6px rgba(255, 170, 0, 0.6);
         }
 
         .status-indicators {
@@ -133,23 +133,11 @@
             transform: scale(1.02);
         }
 
-        .btn-darkhold {
-            background: linear-gradient(135deg, #44000b, #990022);
-            border-color: #ff2255;
-            color: #ffffff;
-            box-shadow: 0 0 8px rgba(255, 0, 50, 0.4);
-        }
-
-        .btn-orange {
-            background: linear-gradient(135deg, #663300, #ff8800);
-            border-color: #ffaa00;
-            color: #ffffff;
-        }
-
-        .btn-time {
-            background: linear-gradient(135deg, #004422, #00bb66);
-            border-color: #00ff88;
-            color: #ffffff;
+        .btn-ancient {
+            background: linear-gradient(135deg, #774400, #ffaa00);
+            border-color: #ffcc00;
+            color: #000000;
+            box-shadow: 0 0 8px rgba(255, 170, 0, 0.4);
         }
 
         #loading {
@@ -164,9 +152,9 @@
         .spinner {
             width: 55px;
             height: 55px;
-            border: 3px solid rgba(255, 0, 60, 0.2);
+            border: 3px solid rgba(255, 170, 0, 0.2);
             border-radius: 50%;
-            border-top-color: #ff0044;
+            border-top-color: #ffaa00;
             animation: spin 0.8s linear infinite;
             margin: 0 auto 12px auto;
         }
@@ -176,6 +164,7 @@
         }
     </style>
 
+    <!-- MediaPipe Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
@@ -187,11 +176,11 @@
 
         <div id="loading">
             <div class="spinner"></div>
-            <p id="loading-text" style="font-size: 0.85rem; color: #ff3355;">Summoning Darkhold Magic V7...</p>
+            <p id="loading-text" style="font-size: 0.85rem; color: #ffaa00;">Initializing Ancient One Sorcery...</p>
         </div>
 
         <div id="ui-overlay">
-            <div class="title-badge">Sorcery V7</div>
+            <div class="title-badge">Ancient Sorcery</div>
             
             <div class="status-indicators">
                 <div class="dot-group">
@@ -199,19 +188,13 @@
                     <span class="dot-label">Hand</span>
                 </div>
                 <div class="dot-group">
-                    <div id="voice-dot" class="dot"></div>
-                    <span class="dot-label">Voice</span>
-                </div>
-                <div class="dot-group">
-                    <div id="dark-dot" class="dot"></div>
-                    <span class="dot-label">Dark</span>
+                    <div id="spell-dot" class="dot"></div>
+                    <span class="dot-label">Spell</span>
                 </div>
             </div>
 
             <div class="controls-grid">
-                <button class="btn btn-darkhold" onclick="toggleDarkhold()">Darkhold Cape</button>
-                <button class="btn btn-orange" onclick="activateShield('orange')">Orange Shield</button>
-                <button class="btn btn-time" onclick="activateShield('time')">Time Shield</button>
+                <button class="btn btn-ancient" onclick="toggleAncientShield()">Toggle Array</button>
             </div>
         </div>
     </div>
@@ -219,7 +202,7 @@
     <script>
         /**
          * FIZONYX Senior Software Engineering Team
-         * Doctor Strange AR Engine V7 (Darkhold Multi-Arm Souls of the Damned & Multi-Spells)
+         * The Ancient One Complex Geometry Array & Motion Spell Engine
          */
 
         const videoElement = document.getElementById('input-video');
@@ -227,32 +210,17 @@
         const canvasCtx = canvasElement.getContext('2d');
 
         const statusDot = document.getElementById('status-dot');
-        const voiceDot = document.getElementById('voice-dot');
-        const darkDot = document.getElementById('dark-dot');
+        const spellDot = document.getElementById('spell-dot');
         const loadingScreen = document.getElementById('loading');
 
-        // State Machine
-        let activeShieldType = null;
-        let shieldTimer = null;
-        let isDarkholdActive = false;
-        let darkholdTimer = null;
-        let isVoiceListening = false;
-        let speechRecognitionInstance = null;
+        let isAncientShieldActive = false;
+        let manualShieldTimer = null;
+        let arrayRotation = 0;
+        let arrayScale = 0;
 
-        // Dynamic Portal States
-        let portalRadius = 0;
-        let targetPortalRadius = 0;
-        let totalRotation = 0;
-        let lastAngle = null;
-
-        // Shield Rotations
-        let rotSlowCW = 0;
-        let rotFastCW = 0;
-        let rotSlowCCW = 0;
-        let rotFastCCW = 0;
-
-        // Darkhold Multi-Arms Animation parameters
-        let darkholdWaveTime = 0;
+        // Fingertip drawing trails
+        const fingerTrails = [];
+        const MAX_TRAIL = 20;
 
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
@@ -261,464 +229,224 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // 1. Voice Recognition Engine with Namaste Trigger
-        function setupVoiceRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return;
-
-            speechRecognitionInstance = new SpeechRecognition();
-            speechRecognitionInstance.continuous = true;
-            speechRecognitionInstance.interimResults = false;
-            speechRecognitionInstance.lang = 'en-US';
-
-            speechRecognitionInstance.onresult = (event) => {
-                const current = event.resultIndex;
-                const text = event.results[current][0].transcript.trim().toLowerCase();
-                
-                if (text.includes('dark') || text.includes('hold') || text.includes('demon')) {
-                    toggleDarkhold(true);
-                } else if (text.includes('orange') || text.includes('shield')) {
-                    activateShield('orange');
-                } else if (text.includes('time') || text.includes('green')) {
-                    activateShield('time');
-                }
-            };
-
-            speechRecognitionInstance.onerror = (e) => {
-                if (e.error !== 'no-speech') console.warn("Voice Notice: ", e.error);
-            };
-
-            speechRecognitionInstance.onend = () => {
-                if (isVoiceListening) {
-                    try { speechRecognitionInstance.start(); } catch(e){}
-                }
-            };
-        }
-
-        function setVoiceState(listen) {
-            if (listen === isVoiceListening) return;
-            isVoiceListening = listen;
-
-            if (listen) {
-                voiceDot.classList.add('active');
-                try { speechRecognitionInstance && speechRecognitionInstance.start(); } catch(e){}
+        function toggleAncientShield() {
+            isAncientShieldActive = !isAncientShieldActive;
+            if (isAncientShieldActive) {
+                spellDot.classList.add('active');
+                if (manualShieldTimer) clearTimeout(manualShieldTimer);
+                manualShieldTimer = setTimeout(() => {
+                    isAncientShieldActive = false;
+                    spellDot.classList.remove('active');
+                }, 10000);
             } else {
-                voiceDot.classList.remove('active');
-                try { speechRecognitionInstance && speechRecognitionInstance.stop(); } catch(e){}
+                spellDot.classList.remove('active');
             }
         }
 
-        function activateShield(type) {
-            activeShieldType = type;
-            if (shieldTimer) clearTimeout(shieldTimer);
-            shieldTimer = setTimeout(() => {
-                activeShieldType = null;
-            }, 7000);
-        }
-
-        function toggleDarkhold(forceState = null) {
-            if (forceState !== null) {
-                isDarkholdActive = forceState;
-            } else {
-                isDarkholdActive = !isDarkholdActive;
-            }
-
-            if (isDarkholdActive) {
-                darkDot.classList.add('active');
-                if (darkholdTimer) clearTimeout(darkholdTimer);
-                darkholdTimer = setTimeout(() => {
-                    isDarkholdActive = false;
-                    darkDot.classList.remove('active');
-                }, 12000); // Active for 12 seconds
-            } else {
-                darkDot.classList.remove('active');
-            }
-        }
-
-        // 2. Trailing Spark Engine for Portals
-        class SparkStreak {
-            constructor(cx, cy, baseAngle, radius) {
-                this.cx = cx;
-                this.cy = cy;
-                this.baseAngle = baseAngle;
-                this.distance = radius + (Math.random() * 24 - 12);
-                this.speed = Math.random() * 0.08 + 0.04;
-                this.radialVel = Math.random() * 2.5 - 0.8;
-                
-                const curX = this.cx + Math.cos(this.baseAngle) * this.distance;
-                const curY = this.cy + Math.sin(this.baseAngle) * this.distance;
-                this.history = [{x: curX, y: curY}];
-
-                this.size = Math.random() * 2.5 + 1.2;
-                this.hue = Math.random() * 15 + 25;
-                this.alpha = 1.0;
-                this.decay = Math.random() * 0.03 + 0.015;
-                this.maxHistory = Math.floor(Math.random() * 6) + 4;
-                this.active = true;
-            }
-
-            update(cx, cy, radius) {
-                this.cx = cx;
-                this.cy = cy;
-                this.baseAngle += this.speed;
-                this.distance += this.radialVel;
-
-                const curX = this.cx + Math.cos(this.baseAngle) * this.distance;
-                const curY = this.cy + Math.sin(this.baseAngle) * this.distance;
-
-                this.history.push({x: curX, y: curY});
-                if (this.history.length > this.maxHistory) {
-                    this.history.shift();
+        // Particle System for Fiery Mandala Sparks
+        class EldritchSparks {
+            constructor(max = 800) {
+                this.particles = [];
+                for (let i = 0; i < max; i++) {
+                    this.particles.push({
+                        x: 0, y: 0, vx: 0, vy: 0,
+                        life: 0, size: 0, color: '#ffaa00', active: false
+                    });
                 }
-
-                this.alpha -= this.decay;
-                if (this.alpha <= 0) this.active = false;
             }
 
-            draw(ctx) {
-                if (this.history.length < 2) return;
+            spawn(x, y, count = 2) {
+                let spawned = 0;
+                for (let p of this.particles) {
+                    if (!p.active) {
+                        p.x = x + (Math.random() - 0.5) * 8;
+                        p.y = y + (Math.random() - 0.5) * 8;
+                        const ang = Math.random() * Math.PI * 2;
+                        const spd = Math.random() * 4 + 1.5;
+                        p.vx = Math.cos(ang) * spd;
+                        p.vy = Math.sin(ang) * spd;
+                        p.life = 1.0;
+                        p.size = Math.random() * 3 + 1.5;
+                        p.color = Math.random() > 0.3 ? '#ffaa00' : '#ffee88';
+                        p.active = true;
+                        spawned++;
+                        if (spawned >= count) break;
+                    }
+                }
+            }
 
+            updateAndRender(ctx) {
                 ctx.save();
-                ctx.beginPath();
-                ctx.moveTo(this.history[0].x, this.history[0].y);
-                for (let i = 1; i < this.history.length; i++) {
-                    ctx.lineTo(this.history[i].x, this.history[i].y);
-                }
+                for (let p of this.particles) {
+                    if (p.active) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.life -= 0.035;
 
-                ctx.strokeStyle = `hsla(${this.hue}, 100%, 65%, ${this.alpha})`;
-                ctx.lineWidth = this.size;
-                ctx.lineCap = 'round';
-                ctx.shadowBlur = this.size * 3;
-                ctx.shadowColor = `hsla(${this.hue}, 100%, 50%, 1)`;
-                ctx.stroke();
+                        if (p.life <= 0) {
+                            p.active = false;
+                            continue;
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                        ctx.fillStyle = p.color;
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = '#ff6600';
+                        ctx.globalAlpha = p.life;
+                        ctx.fill();
+                    }
+                }
                 ctx.restore();
             }
         }
 
-        const portalSparks = [];
+        const sparkEngine = new EldritchSparks();
 
-        // 3. Darkhold Souls of the Damned: Multi-Arm Skeletal Wings & Dark Smoke Cloak
-        function renderDarkholdCloak(ctx, centerX, centerY, scale) {
+        // 1. Draw Fiery Motion Trails (Ancient One Drawing Lines Gesture)
+        function renderFingerTrails(ctx, points) {
+            if (points.length < 2) return;
             ctx.save();
-            darkholdWaveTime += 0.04;
-
-            // Ambient Dark Red Fog / Vignette
-            const fogGrad = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, scale * 3.5);
-            fogGrad.addColorStop(0, 'rgba(80, 0, 20, 0.4)');
-            fogGrad.addColorStop(0.6, 'rgba(30, 0, 10, 0.6)');
-            fogGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = fogGrad;
-            ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-
-            // Damned Skeletal Shadow Arms (6 Pairs radiating outward)
-            const armPairs = 7;
-            for (let i = 0; i < armPairs; i++) {
-                const baseAngleLeft = Math.PI * 0.8 + (i * 0.18) + Math.sin(darkholdWaveTime + i) * 0.08;
-                const baseAngleRight = Math.PI * 0.2 - (i * 0.18) - Math.sin(darkholdWaveTime + i) * 0.08;
-                const armLength = (scale * 2.2) + (i * 12);
-
-                drawSkeletalDamnedArm(ctx, centerX, centerY, baseAngleLeft, armLength, darkholdWaveTime + i);
-                drawSkeletalDamnedArm(ctx, centerX, centerY, baseAngleRight, armLength, darkholdWaveTime + i + 2);
-            }
-
-            // Floating Dark Musical / Energy Runes around hands
-            const runeCount = 8;
-            for (let i = 0; i < runeCount; i++) {
-                const ang = (i * Math.PI * 2) / runeCount + darkholdWaveTime * 0.5;
-                const dist = scale * 1.5 + Math.sin(darkholdWaveTime * 2 + i) * 20;
-                const rx = centerX + Math.cos(ang) * dist;
-                const ry = centerY + Math.sin(ang) * dist;
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(rx, ry, Math.random() * 8 + 6, 0, Math.PI * 2);
-                ctx.fillStyle = '#ff0033';
-                ctx.shadowColor = '#ff0055';
-                ctx.shadowBlur = 18;
-                ctx.fill();
-
-                // Dark Energy Core
-                ctx.beginPath();
-                ctx.arc(rx, ry, 3, 0, Math.PI * 2);
-                ctx.fillStyle = '#000000';
-                ctx.fill();
-                ctx.restore();
-            }
-
-            ctx.restore();
-        }
-
-        // Skeletal Demonic Arm Drawer with Joint Angles & Claws
-        function drawSkeletalDamnedArm(ctx, rootX, rootY, angle, length, waveOffset) {
-            ctx.save();
-            ctx.shadowColor = '#ff0033';
+            ctx.shadowColor = '#ff6600';
             ctx.shadowBlur = 15;
-
-            // Joint 1: Shoulder to Elbow
-            const elbowX = rootX + Math.cos(angle) * (length * 0.45);
-            const elbowY = rootY + Math.sin(angle) * (length * 0.45) - 20;
-
-            // Joint 2: Elbow to Wrist (with organic serpentine wave)
-            const wristAngle = angle + Math.sin(waveOffset) * 0.35;
-            const wristX = elbowX + Math.cos(wristAngle) * (length * 0.55);
-            const wristY = elbowY + Math.sin(wristAngle) * (length * 0.55);
-
-            // Draw Dark Skeletal Bone Arm
-            ctx.beginPath();
-            ctx.moveTo(rootX, rootY);
-            ctx.quadraticCurveTo(elbowX + Math.sin(waveOffset)*15, elbowY, wristX, wristY);
-            ctx.strokeStyle = '#1a0508';
-            ctx.lineWidth = 10;
             ctx.lineCap = 'round';
-            ctx.stroke();
+            ctx.lineJoin = 'round';
 
-            // Inner Red Core Vein
-            ctx.beginPath();
-            ctx.moveTo(rootX, rootY);
-            ctx.quadraticCurveTo(elbowX + Math.sin(waveOffset)*15, elbowY, wristX, wristY);
-            ctx.strokeStyle = '#ff003c';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // Draw Skeletal Claws / Hands at wrist
-            for (let f = -2; f <= 2; f++) {
-                const clawAngle = wristAngle + (f * 0.25) + Math.sin(waveOffset * 1.5) * 0.15;
-                const clawLen = 28 + Math.abs(f) * 4;
-                const clawTipX = wristX + Math.cos(clawAngle) * clawLen;
-                const clawTipY = wristY + Math.sin(clawAngle) * clawLen;
-
+            for (let i = 1; i < points.length; i++) {
+                const alpha = i / points.length;
                 ctx.beginPath();
-                ctx.moveTo(wristX, wristY);
-                ctx.lineTo(clawTipX, clawTipY);
-                ctx.strokeStyle = '#0d0003';
-                ctx.lineWidth = 4;
+                ctx.moveTo(points[i - 1].x, points[i - 1].y);
+                ctx.lineTo(points[i].x, points[i].y);
+                ctx.strokeStyle = `rgba(255, 170, 0, ${alpha})`;
+                ctx.lineWidth = alpha * 6;
                 ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(clawTipX, clawTipY, 2.5, 0, Math.PI * 2);
-                ctx.fillStyle = '#ff2255';
-                ctx.fill();
             }
-
             ctx.restore();
         }
 
-        // 4. Multi-Layer SVG Shield Renderer
-        function drawMultiLayerEldritchShield(ctx, x, y, radius, isGreen = false) {
+        // 2. Sub-Mandala Renderer (for the outer 6 surrounding circles)
+        function drawSatelliteMandala(ctx, x, y, r, rot) {
             ctx.save();
             ctx.translate(x, y);
+            ctx.rotate(rot);
 
-            rotSlowCW += 0.01;
-            rotFastCW += 0.035;
-            rotSlowCCW -= 0.008;
-            rotFastCCW -= 0.025;
+            ctx.strokeStyle = '#ffaa00';
+            ctx.shadowColor = '#ff5500';
+            ctx.shadowBlur = 10;
+            ctx.lineWidth = 1.5;
 
-            const baseColor = isGreen ? '#00ff88' : '#ff6a00';
-            const brightColor = isGreen ? '#e0fffa' : '#ffcc00';
-            const shadowClr = isGreen ? '#00ff44' : '#ff4400';
-            const scale = radius / 285;
+            // Outer Ring
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.stroke();
 
-            function circle(r, stroke, lw, dash = null) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(0, 0, r * scale, 0, Math.PI * 2);
-                ctx.strokeStyle = stroke;
-                ctx.lineWidth = lw;
-                ctx.shadowColor = shadowClr;
-                ctx.shadowBlur = 12;
-                if (dash) ctx.setLineDash(dash);
-                ctx.stroke();
-                ctx.restore();
+            // Inner Star/Square
+            const side = r * 1.1;
+            ctx.strokeRect(-side / 2, -side / 2, side, side);
+            ctx.rotate(Math.PI / 4);
+            ctx.strokeRect(-side / 2, -side / 2, side, side);
+
+            // Center Point
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // 3. The Ancient One Sacred Geometry Array (Master Multiverse Shield)
+        function renderAncientOneArray(ctx, cx, cy, radius) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            arrayRotation += 0.02;
+
+            ctx.shadowColor = '#ff6600';
+            ctx.shadowBlur = 25;
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 2.5;
+
+            // Grand Outer Ring
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Secondary Intersecting Perimeter Ring
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.82, 0, Math.PI * 2);
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Large Interlocking Diamonds / 8-Pointed Star
+            ctx.save();
+            ctx.rotate(arrayRotation);
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = 2;
+            const bigSide = radius * 1.15;
+            for (let i = 0; i < 2; i++) {
+                ctx.rotate(Math.PI / 4);
+                ctx.strokeRect(-bigSide / 2, -bigSide / 2, bigSide, bigSide);
             }
+            ctx.restore();
 
-            function drawEquilateral(r, rotOffset = 0) {
-                ctx.save();
-                ctx.rotate(rotOffset);
+            // Central Sacred Core
+            ctx.save();
+            ctx.rotate(-arrayRotation * 1.5);
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 6-Pointed Star inside Core
+            ctx.strokeStyle = '#ffeeaa';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < 2; i++) {
+                ctx.rotate(Math.PI / 3);
                 ctx.beginPath();
-                for (let i = 0; i < 3; i++) {
-                    const ang = (i * 2 * Math.PI / 3) - Math.PI / 2;
-                    const px = Math.cos(ang) * (r * scale);
-                    const py = Math.sin(ang) * (r * scale);
-                    if (i === 0) ctx.moveTo(px, py);
+                for (let p = 0; p < 3; p++) {
+                    const ang = (p * 2 * Math.PI / 3) - Math.PI / 2;
+                    const px = Math.cos(ang) * (radius * 0.42);
+                    const py = Math.sin(ang) * (radius * 0.42);
+                    if (p === 0) ctx.moveTo(px, py);
                     else ctx.lineTo(px, py);
                 }
                 ctx.closePath();
                 ctx.stroke();
-                ctx.restore();
             }
-
-            // Layer 1
-            ctx.save();
-            ctx.rotate(rotSlowCW);
-            circle(8, brightColor, 3);
-            circle(35, baseColor, 2);
-            circle(60, brightColor, 2.5, [8, 12]);
-            const sqSide = 120 * scale;
-            ctx.strokeStyle = baseColor;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-sqSide/2, -sqSide/2, sqSide, sqSide);
-            ctx.rotate(Math.PI / 4);
-            ctx.strokeRect(-sqSide/2, -sqSide/2, sqSide, sqSide);
             ctx.restore();
 
+            // 6 Outer Surrounding Satellite Mandalas (as seen in the movie scene)
+            const numSatellites = 6;
+            const satelliteDist = radius * 0.72;
+            const satelliteRadius = radius * 0.22;
 
-            // Layer 2
-            ctx.save();
-            ctx.rotate(rotFastCCW);
-            circle(110, baseColor, 4);
-            circle(140, baseColor, 2, [8, 12]);
-            ctx.strokeStyle = brightColor;
-            ctx.lineWidth = 2.5;
-            drawEquilateral(140, 0);
-            drawEquilateral(140, Math.PI);
-            ctx.beginPath();
-            ctx.moveTo(-140 * scale, 0); ctx.lineTo(140 * scale, 0);
-            ctx.moveTo(0, -140 * scale); ctx.lineTo(0, 140 * scale);
-            ctx.stroke();
-            ctx.restore();
+            for (let s = 0; s < numSatellites; s++) {
+                const angle = (s * 2 * Math.PI / numSatellites) + (arrayRotation * 0.6);
+                const sx = Math.cos(angle) * satelliteDist;
+                const sy = Math.sin(angle) * satelliteDist;
 
-            // Layer 3
-            ctx.save();
-            ctx.rotate(rotFastCW);
-            circle(185, baseColor, 4);
-            circle(225, baseColor, 3, [3, 15]);
-            ctx.strokeStyle = baseColor;
-            ctx.lineWidth = 2;
-            drawEquilateral(190, 0.26);
-            drawEquilateral(190, 2.35);
-            drawEquilateral(190, 4.45);
-            ctx.restore();
+                drawSatelliteMandala(ctx, sx, sy, satelliteRadius, -arrayRotation * 2);
 
-            // Layer 4
-            ctx.save();
-            ctx.rotate(rotSlowCCW);
-            circle(260, brightColor, 4);
-            circle(275, baseColor, 2, [8, 12]);
-            circle(285, baseColor, 2);
-            const nodeDist = 285 * scale;
-            const nodes = [[0, nodeDist], [0, -nodeDist], [nodeDist, 0], [-nodeDist, 0]];
-            ctx.fillStyle = brightColor;
-            for (let n of nodes) {
+                // Connecting Web Lines from Center to Satellites
                 ctx.beginPath();
-                ctx.arc(n[0], n[1], 4.5, 0, Math.PI * 2);
-                ctx.shadowColor = shadowClr;
-                ctx.shadowBlur = 10;
-                ctx.fill();
-            }
-            ctx.restore();
-
-            ctx.restore();
-        }
-
-        // 5. Cosmic Multiverse Portal Dimension
-        function renderCosmicPortal(ctx, x, y, radius) {
-            if (radius < 15) return;
-
-            ctx.save();
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(x, y, radius * 0.78, 0, Math.PI * 2);
-            ctx.clip();
-
-            ctx.fillStyle = '#020008';
-            ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-
-            const grad = ctx.createRadialGradient(x, y, 5, x, y, radius * 0.78);
-            grad.addColorStop(0, 'rgba(120, 0, 255, 0.6)');
-            grad.addColorStop(0.5, 'rgba(0, 200, 255, 0.3)');
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-
-            const time = Date.now() * 0.002;
-            for (let i = 0; i < 30; i++) {
-                const starAngle = i * 137.5;
-                const starDist = ((i * 13 + time * 20) % (radius * 0.72));
-                const sx = x + Math.cos(starAngle) * starDist;
-                const sy = y + Math.sin(starAngle) * starDist;
-
-                ctx.beginPath();
-                ctx.arc(sx, sy, (i % 3) + 1, 0, Math.PI * 2);
-                ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#ffd700';
-                ctx.shadowColor = '#00ffff';
-                ctx.shadowBlur = 8;
-                ctx.fill();
-            }
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(x, y, radius * 0.8, 0, Math.PI * 2);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = '#ffaa00';
-            ctx.shadowBlur = 15;
-            ctx.stroke();
-
-            for (let i = 0; i < 12; i++) {
-                const randomAngle = Math.random() * Math.PI * 2;
-                portalSparks.push(new SparkStreak(x, y, randomAngle, radius));
-            }
-
-            for (let i = portalSparks.length - 1; i >= 0; i--) {
-                portalSparks[i].update(x, y, radius);
-                portalSparks[i].draw(ctx);
-                if (!portalSparks[i].active) portalSparks.splice(i, 1);
-            }
-
-            ctx.restore();
-        }
-
-        // 6. 5-Finger Whips
-        function renderFiveFingerWhips(ctx, hand1, hand2) {
-            const pairs = [4, 8, 12, 16, 20];
-
-            pairs.forEach((fingerIdx, idx) => {
-                const p1 = {
-                    x: hand1[fingerIdx].x * canvasElement.width,
-                    y: hand1[fingerIdx].y * canvasElement.height
-                };
-                const p2 = {
-                    x: hand2[fingerIdx].x * canvasElement.width,
-                    y: hand2[fingerIdx].y * canvasElement.height
-                };
-
-                ctx.save();
-                ctx.shadowColor = '#ff6600';
-                ctx.shadowBlur = 18;
-
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2 + (idx * 12 + 18);
-
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
-                ctx.strokeStyle = '#ff9900';
-                ctx.lineWidth = 4 - idx * 0.35;
+                ctx.moveTo(0, 0);
+                ctx.lineTo(sx, sy);
+                ctx.strokeStyle = 'rgba(255, 170, 0, 0.4)';
+                ctx.lineWidth = 1;
                 ctx.stroke();
+            }
 
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.restore();
-            });
+            // Spawn sparks at center and perimeter
+            sparkEngine.spawn(cx, cy, 3);
+            for (let i = 0; i < 3; i++) {
+                const a = Math.random() * Math.PI * 2;
+                sparkEngine.spawn(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, 1);
+            }
+
+            ctx.restore();
         }
 
-        function isNamastePose(hand1, hand2) {
-            const wrist1 = hand1[0];
-            const wrist2 = hand2[0];
-            const middleTip1 = hand1[12];
-            const middleTip2 = hand2[12];
-
-            const wristDist = Math.hypot(wrist1.x - wrist2.x, wrist1.y - wrist2.y);
-            const tipDist = Math.hypot(middleTip1.x - middleTip2.x, middleTip1.y - middleTip2.y);
-
-            return wristDist < 0.22 && tipDist < 0.18;
-        }
-
-        // Processing Pipeline Loop
+        // Processing Pipeline
         function onResults(results) {
             if (loadingScreen.style.display !== 'none') {
                 loadingScreen.style.display = 'none';
@@ -730,115 +458,68 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 statusDot.classList.add('active');
 
-                // Render Darkhold Souls of Damned Cloak if Active
-                if (isDarkholdActive) {
-                    const firstPalm = results.multiHandLandmarks[0][9];
-                    const cx = firstPalm.x * canvasElement.width;
-                    const cy = firstPalm.y * canvasElement.height + 40;
-                    renderDarkholdCloak(canvasCtx, cx, cy, 140);
-                }
-
-                // Draw Landmark Joint Tracking Dots
+                // Render Tracking Dots
                 results.multiHandLandmarks.forEach((landmarks) => {
                     landmarks.forEach((lm, idx) => {
                         const px = lm.x * canvasElement.width;
                         const py = lm.y * canvasElement.height;
                         canvasCtx.beginPath();
                         canvasCtx.arc(px, py, [4, 8, 12, 16, 20].includes(idx) ? 5 : 3.5, 0, Math.PI * 2);
-                        canvasCtx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#00ffff' : (isDarkholdActive ? '#ff0033' : '#ff003c');
-                        canvasCtx.shadowColor = isDarkholdActive ? '#ff0055' : '#00ffaa';
+                        canvasCtx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#00ffff' : '#ff003c';
+                        canvasCtx.shadowColor = '#00ffaa';
                         canvasCtx.shadowBlur = 6;
                         canvasCtx.fill();
                     });
                 });
 
+                // Fingertip drawing trail on leading hand
+                const leadIndex = {
+                    x: results.multiHandLandmarks[0][8].x * canvasElement.width,
+                    y: results.multiHandLandmarks[0][8].y * canvasElement.height
+                };
+                fingerTrails.push(leadIndex);
+                if (fingerTrails.length > MAX_TRAIL) fingerTrails.shift();
+                renderFingerTrails(canvasCtx, fingerTrails);
+
+                // Two-Hand Gesture Detection for Array Spell
                 if (results.multiHandLandmarks.length >= 2) {
                     const hand1 = results.multiHandLandmarks[0];
                     const hand2 = results.multiHandLandmarks[1];
 
-                    // Check Namaste Pose
-                    if (isNamastePose(hand1, hand2)) {
-                        setVoiceState(true);
+                    const palm1 = { x: hand1[9].x * canvasElement.width, y: hand1[9].y * canvasElement.height };
+                    const palm2 = { x: hand2[9].x * canvasElement.width, y: hand2[9].y * canvasElement.height };
+
+                    const handDistance = Math.hypot(palm1.x - palm2.x, palm1.y - palm2.y);
+                    const midPoint = { x: (palm1.x + palm2.x) / 2, y: (palm1.y + palm2.y) / 2 };
+
+                    // Open Stance / Palms Apart (Ancient One Manifestation Pose)
+                    const isHandsSpread = handDistance > 200 && handDistance < 600;
+
+                    if (isHandsSpread || isAncientShieldActive) {
+                        spellDot.classList.add('active');
+                        arrayScale += (Math.min(320, handDistance * 0.85) - arrayScale) * 0.1;
+                        renderAncientOneArray(canvasCtx, midPoint.x, midPoint.y, arrayScale);
                     } else {
-                        setVoiceState(false);
+                        arrayScale += (0 - arrayScale) * 0.15;
+                        if (!isAncientShieldActive) spellDot.classList.remove('active');
                     }
-
-                    // Check Sling Ring Gesture
-                    const isSlingPose = hand1[8].y < hand1[6].y && 
-                                        hand1[12].y < hand1[10].y && 
-                                        hand1[16].y > hand1[14].y;
-
-                    if (isSlingPose && !isDarkholdActive) {
-                        const portalCenter = {
-                            x: hand1[9].x * canvasElement.width,
-                            y: hand1[9].y * canvasElement.height
-                        };
-
-                        const rotatingTip = {
-                            x: hand2[8].x * canvasElement.width,
-                            y: hand2[8].y * canvasElement.height
-                        };
-
-                        const currentAngle = Math.atan2(rotatingTip.y - portalCenter.y, rotatingTip.x - portalCenter.x);
-
-                        if (lastAngle !== null) {
-                            let delta = currentAngle - lastAngle;
-                            if (delta > Math.PI) delta -= Math.PI * 2;
-                            if (delta < -Math.PI) delta += Math.PI * 2;
-
-                            totalRotation += Math.abs(delta);
-                            targetPortalRadius = Math.min(340, Math.max(50, totalRotation * 22));
-                        }
-                        lastAngle = currentAngle;
-
-                        portalRadius += (targetPortalRadius - portalRadius) * 0.12;
-                        renderCosmicPortal(canvasCtx, portalCenter.x, portalCenter.y, portalRadius);
-                    } else {
-                        lastAngle = null;
-                        totalRotation = Math.max(0, totalRotation - 0.05);
-                        portalRadius += (0 - portalRadius) * 0.12;
-
-                        if (!isNamastePose(hand1, hand2) && !isDarkholdActive) {
-                            renderFiveFingerWhips(canvasCtx, hand1, hand2);
-                        }
-                    }
-                } else {
-                    setVoiceState(false);
-                    lastAngle = null;
+                } else if (isAncientShieldActive) {
+                    const palm = {
+                        x: results.multiHandLandmarks[0][9].x * canvasElement.width,
+                        y: results.multiHandLandmarks[0][9].y * canvasElement.height
+                    };
+                    renderAncientOneArray(canvasCtx, palm.x, palm.y, 220);
                 }
-
-                // Render Shield when Active
-                if (activeShieldType) {
-                    results.multiHandLandmarks.forEach((landmarks) => {
-                        const palmCenter = {
-                            x: landmarks[9].x * canvasElement.width,
-                            y: landmarks[9].y * canvasElement.height
-                        };
-                        const wrist = {
-                            x: landmarks[0].x * canvasElement.width,
-                            y: landmarks[0].y * canvasElement.height
-                        };
-                        const handScale = Math.hypot(palmCenter.x - wrist.x, palmCenter.y - wrist.y);
-                        
-                        drawMultiLayerEldritchShield(
-                            canvasCtx, 
-                            palmCenter.x, 
-                            palmCenter.y, 
-                            handScale * 2.1, 
-                            activeShieldType === 'time'
-                        );
-                    });
-                }
-
             } else {
                 statusDot.classList.remove('active');
-                setVoiceState(false);
+                fingerTrails.length = 0;
             }
 
+            sparkEngine.updateAndRender(canvasCtx);
             canvasCtx.restore();
         }
 
-        // Initialize MediaPipe Engine
+        // Initialize MediaPipe Hands
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -852,7 +533,7 @@
 
         hands.onResults(onResults);
 
-        // Single Front Camera Pipeline
+        // Camera Initialization
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({ image: videoElement });
@@ -861,11 +542,9 @@
             height: 720
         });
 
-        camera.start().then(() => {
-            setupVoiceRecognition();
-        }).catch((err) => {
+        camera.start().catch((err) => {
             console.error("Camera access error:", err);
-            document.getElementById('loading-text').innerText = "Please grant camera permission.";
+            document.getElementById('loading-text').innerText = "Please allow camera access.";
         });
     </script>
 </body>
