@@ -1,15 +1,16 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - Sri Rama AR Vision Experience</title>
+    <title>FIZONYX - Sri Rama AR Vision Experience v2</title>
     
     <!-- Tailwind CSS for UI -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- MediaPipe Holistic & Camera Utils -->
+    <!-- MediaPipe Holistic, Camera Utils & Drawing Utils -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
 
     <style>
@@ -47,24 +48,42 @@
 </head>
 <body class="text-white select-none">
 
-    <!-- UI Overlay -->
-    <div class="absolute top-6 left-6 z-20 pointer-events-none">
-        <h1 class="text-3xl font-extrabold text-amber-400 tracking-wider glow-gold">SRI RAMA AVATAR VISION</h1>
+    <!-- Top Left Header Overlay -->
+    <div class="absolute top-5 left-5 z-20 pointer-events-none">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-amber-400 tracking-wider glow-gold">SRI RAMA AVATAR VISION</h1>
         <p class="text-xs text-amber-200 mt-1 uppercase tracking-widest font-semibold">Engineered by FIZONYX Defense Lab</p>
-        <div class="mt-4 bg-black/60 backdrop-blur-md border border-amber-500/40 p-3 rounded-lg text-xs leading-relaxed max-w-sm">
-            <p class="text-amber-300 font-bold mb-1">🕹️ AR గైడ్ / Controls:</p>
-            <ul class="space-style list-disc list-inside text-gray-200">
-                <li><span class="text-amber-300 font-semibold">కోదండం (Bow):</span> ఎడమ చేతిని పిడికిలి బిగించి పక్కకి పెట్టండి.</li>
-                <li><span class="text-amber-300 font-semibold">బాణం (Arrow):</span> కుడి చేతి 3 వేళ్ళతో ధనుస్సు నారిని వెనక్కి లాగండి.</li>
-                <li><span class="text-amber-300 font-semibold">బాణం వదలడం (Release):</span> కుడిచేతి వేళ్లు తెరవగానే బాణం దూసుకెళ్తుంది.</li>
-            </ul>
+        
+        <!-- Live Gesture Diagnostics HUD -->
+        <div class="mt-4 bg-black/75 backdrop-blur-md border border-amber-500/50 p-3 rounded-lg text-xs space-y-2 max-w-xs shadow-xl">
+            <div class="flex items-center justify-between border-b border-gray-700 pb-1">
+                <span class="text-gray-300">బాడీ ట్రాకింగ్ (Body Pose):</span>
+                <span id="pose-status" class="font-bold text-red-400">NOT DETECTED</span>
+            </div>
+            <div class="flex items-center justify-between border-b border-gray-700 pb-1">
+                <span class="text-gray-300">ఎడమ చేయి (Left Hand):</span>
+                <span id="left-hand-status" class="font-bold text-red-400">NOT IN VIEW</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">కుడి చేయి (Right Hand):</span>
+                <span id="right-hand-status" class="font-bold text-red-400">NOT IN VIEW</span>
+            </div>
         </div>
     </div>
 
+    <!-- Live Instructions Overlay -->
+    <div class="absolute top-5 right-5 z-20 bg-black/75 backdrop-blur-md border border-amber-500/40 p-3 rounded-lg text-xs leading-relaxed max-w-xs pointer-events-none shadow-xl">
+        <p class="text-amber-300 font-bold mb-1">🕹️ AR గైడ్ / Controls:</p>
+        <ul class="list-disc list-inside text-gray-200 space-y-1">
+            <li><span class="text-amber-300 font-semibold">కోదండం (Bow):</span> ఎడమ చేతిని పిడికిలి బిగించి సైడ్‌కి పెట్టండి.</li>
+            <li><span class="text-amber-300 font-semibold">బాణం సంధించడం (Draw):</span> కుడి చేతి 3 వేళ్ళను కలిపి లాగండి.</li>
+            <li><span class="text-amber-300 font-semibold">రిలీజ్ (Shoot):</span> కుడి వేళ్లు తెరవగానే బాణం దూసుకెళ్తుంది.</li>
+        </ul>
+    </div>
+
     <!-- Live Status Indicator -->
-    <div class="absolute bottom-6 right-6 z-20 bg-black/70 backdrop-blur-md border border-amber-500/30 px-4 py-2 rounded-full flex items-center space-x-3">
-        <span id="status-dot" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
-        <span id="status-text" class="text-xs font-mono text-amber-300">INITIALIZING AI MODELS...</span>
+    <div class="absolute bottom-6 right-6 z-20 bg-black/80 backdrop-blur-md border border-amber-500/40 px-4 py-2 rounded-full flex items-center space-x-3 shadow-lg">
+        <span id="status-dot" class="w-3 h-3 rounded-full bg-yellow-400 animate-pulse"></span>
+        <span id="status-text" class="text-xs font-mono text-amber-300 font-bold">CAMERA & AI LOADING...</span>
     </div>
 
     <!-- Hidden Video Element for Feed -->
@@ -83,6 +102,11 @@
         const statusDot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
 
+        // Diagnostics HUD Elements
+        const poseStatusEl = document.getElementById('pose-status');
+        const leftHandStatusEl = document.getElementById('left-hand-status');
+        const rightHandStatusEl = document.getElementById('right-hand-status');
+
         // Dynamic State Variables
         let arrows = [];
         let particles = [];
@@ -90,7 +114,7 @@
         let bowPosition = { x: 0, y: 0 };
         let arrowTailPosition = { x: 0, y: 0 };
 
-        // Resize Canvas to Window
+        // Resize Canvas to Full Window
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
             canvasElement.height = window.innerHeight;
@@ -98,7 +122,7 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Audio Synthesis for Arrow Release (No External Audio Assets Needed)
+        // Audio Synthesis for Arrow Release
         function playArrowReleaseSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -106,10 +130,10 @@
                 const gain = audioCtx.createGain();
                 
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.35);
+                osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.35);
 
-                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
 
                 osc.connect(gain);
@@ -118,7 +142,7 @@
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.35);
             } catch (e) {
-                console.warn("Audio Context Init Blocked:", e);
+                console.warn("Web Audio Blocked:", e);
             }
         }
 
@@ -157,7 +181,7 @@
                 this.x = startX;
                 this.y = startY;
                 const angle = Math.atan2(targetY - startY, targetX - startX);
-                const speed = 35;
+                const speed = 40;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
                 this.angle = angle;
@@ -168,13 +192,12 @@
                 this.y += this.vy;
                 this.life++;
 
-                // Spawn Sparkle Trail
-                for(let i = 0; i < 3; i++) {
+                for (let i = 0; i < 4; i++) {
                     particles.push(new Particle(
-                        this.x + (Math.random() - 0.5) * 10,
-                        this.y + (Math.random() - 0.5) * 10,
-                        -this.vx * 0.1 + (Math.random() - 0.5) * 2,
-                        -this.vy * 0.1 + (Math.random() - 0.5) * 2,
+                        this.x + (Math.random() - 0.5) * 12,
+                        this.y + (Math.random() - 0.5) * 12,
+                        -this.vx * 0.12 + (Math.random() - 0.5) * 3,
+                        -this.vy * 0.12 + (Math.random() - 0.5) * 3,
                         '255, 223, 0'
                     ));
                 }
@@ -186,33 +209,33 @@
 
                 // Golden Glowing Arrow
                 ctx.shadowColor = '#FFD700';
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 20;
                 
                 // Shaft
-                ctx.strokeStyle = '#FFE066';
-                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#FFF8DC';
+                ctx.lineWidth = 5;
                 ctx.beginPath();
-                ctx.moveTo(-60, 0);
-                ctx.lineTo(20, 0);
+                ctx.moveTo(-70, 0);
+                ctx.lineTo(25, 0);
                 ctx.stroke();
 
                 // Arrowhead
                 ctx.fillStyle = '#FFD700';
                 ctx.beginPath();
-                ctx.moveTo(25, 0);
-                ctx.lineTo(10, -8);
-                ctx.lineTo(12, 0);
-                ctx.lineTo(10, 8);
+                ctx.moveTo(30, 0);
+                ctx.lineTo(12, -10);
+                ctx.lineTo(15, 0);
+                ctx.lineTo(12, 10);
                 ctx.closePath();
                 ctx.fill();
 
                 // Golden Tail Feathers
-                ctx.fillStyle = '#FFA500';
+                ctx.fillStyle = '#FF8C00';
                 ctx.beginPath();
-                ctx.moveTo(-60, 0);
-                ctx.lineTo(-70, -6);
-                ctx.lineTo(-65, 0);
-                ctx.lineTo(-70, 6);
+                ctx.moveTo(-70, 0);
+                ctx.lineTo(-82, -8);
+                ctx.lineTo(-76, 0);
+                ctx.lineTo(-82, 8);
                 ctx.closePath();
                 ctx.fill();
 
@@ -223,7 +246,6 @@
         // Helper: Check if Left Hand is Making a Fist
         function isFist(landmarks) {
             if (!landmarks) return false;
-            // Tips distance to wrist compared to PIP joints
             const wrist = landmarks[0];
             const tips = [8, 12, 16, 20];
             const pips = [6, 10, 14, 18];
@@ -231,8 +253,8 @@
             for (let i = 0; i < tips.length; i++) {
                 const tipDist = Math.hypot(landmarks[tips[i]].x - wrist.x, landmarks[tips[i]].y - wrist.y);
                 const pipDist = Math.hypot(landmarks[pips[i]].x - wrist.x, landmarks[pips[i]].y - wrist.y);
-                if (tipDist > pipDist * 1.15) {
-                    return false; // Finger extended
+                if (tipDist > pipDist * 1.18) {
+                    return false;
                 }
             }
             return true;
@@ -248,21 +270,19 @@
             const pinkyTip = landmarks[20];
             const wrist = landmarks[0];
 
-            // Distance between thumb, index, and middle tip
             const d1 = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
             const d2 = Math.hypot(thumbTip.x - middleTip.x, thumbTip.y - middleTip.y);
 
-            // Ring and pinky should be curled towards wrist
             const ringDist = Math.hypot(ringTip.x - wrist.x, ringTip.y - wrist.y);
             const ringPipDist = Math.hypot(landmarks[14].x - wrist.x, landmarks[14].y - wrist.y);
 
-            const isPinching = (d1 < 0.12 && d2 < 0.12);
-            const isRestCurled = ringDist < ringPipDist * 1.25;
+            const isPinching = (d1 < 0.14 && d2 < 0.14);
+            const isRestCurled = ringDist < ringPipDist * 1.35;
 
             return isPinching && isRestCurled;
         }
 
-        // Draw Golden Divine Armor (కవచం) on Shoulders and Chest
+        // Draw Golden Divine Armor (శ్రీరాముడి కవచం)
         function drawSriRamaArmor(ctx, poseLandmarks) {
             if (!poseLandmarks) return;
 
@@ -270,8 +290,6 @@
             const rightShoulder = poseLandmarks[12];
             const leftHip = poseLandmarks[23];
             const rightHip = poseLandmarks[24];
-            const neckX = (leftShoulder.x + rightShoulder.x) / 2 * canvasElement.width;
-            const neckY = (leftShoulder.y + rightShoulder.y) / 2 * canvasElement.height;
 
             const lsX = leftShoulder.x * canvasElement.width;
             const lsY = leftShoulder.y * canvasElement.height;
@@ -281,43 +299,46 @@
             const lhY = leftHip.y * canvasElement.height;
             const rhX = rightHip.x * canvasElement.width;
             const rhY = rightHip.y * canvasElement.height;
+            const neckX = (lsX + rsX) / 2;
+            const neckY = (lsY + rsY) / 2;
 
             ctx.save();
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
+            ctx.shadowBlur = 25;
 
-            // 1. Golden Breastplate / Armor Base
+            // 1. Golden Breastplate
             const armorGrad = ctx.createLinearGradient(lsX, lsY, rhX, rhY);
             armorGrad.addColorStop(0, '#FFE066');
             armorGrad.addColorStop(0.5, '#DAA520');
-            armorGrad.addColorStop(1, '#B8860B');
+            armorGrad.addColorStop(1, '#8B6508');
 
             ctx.fillStyle = armorGrad;
             ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 3.5;
             ctx.beginPath();
-            ctx.moveTo(lsX - 20, lsY - 10);
-            ctx.lineTo(rsX + 20, rsY - 10);
-            ctx.lineTo(rhX + 15, rhY);
-            ctx.lineTo(lhX - 15, lhY);
+            ctx.moveTo(lsX - 25, lsY - 15);
+            ctx.lineTo(rsX + 25, rsY - 15);
+            ctx.lineTo(rhX + 20, rhY);
+            ctx.lineTo(lhX - 20, lhY);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
-            // 2. Divine Shoulder Pauldrons
+            // 2. Divine Pauldrons on Shoulders
             [ [lsX, lsY], [rsX, rsY] ].forEach(([x, y]) => {
                 ctx.fillStyle = '#FFD700';
                 ctx.beginPath();
-                ctx.arc(x, y, 35, 0, Math.PI * 2);
+                ctx.arc(x, y, 40, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.strokeStyle = '#FFF8DC';
+                ctx.lineWidth = 3;
                 ctx.stroke();
             });
 
-            // 3. Central Golden Sacred Emblem / Surya Locket
+            // 3. Central Surya Sacred Emblem
             ctx.fillStyle = '#FF4500';
             ctx.beginPath();
-            ctx.arc(neckX, neckY + 40, 18, 0, Math.PI * 2);
+            ctx.arc(neckX, neckY + 45, 20, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 4;
@@ -333,49 +354,46 @@
             const hy = handPos.y;
 
             ctx.shadowColor = '#FFD700';
-            ctx.shadowBlur = 25;
+            ctx.shadowBlur = 30;
 
-            // Outer Divine Curve of Bow
+            // Outer Divine Arch
             ctx.strokeStyle = '#DAA520';
-            ctx.lineWidth = 14;
+            ctx.lineWidth = 16;
             ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.arc(hx, hy, 140, -Math.PI * 0.45, Math.PI * 0.45, false);
+            ctx.arc(hx, hy, 150, -Math.PI * 0.45, Math.PI * 0.45, false);
             ctx.stroke();
 
             // Inner Gold Highlights
-            ctx.strokeStyle = '#FFF380';
+            ctx.strokeStyle = '#FFF8DC';
             ctx.lineWidth = 6;
             ctx.beginPath();
-            ctx.arc(hx, hy, 140, -Math.PI * 0.45, Math.PI * 0.45, false);
+            ctx.arc(hx, hy, 150, -Math.PI * 0.45, Math.PI * 0.45, false);
             ctx.stroke();
 
-            // Bow End Caps (Makara / Ornate tips)
-            const topTip = { x: hx + Math.cos(-Math.PI * 0.45) * 140, y: hy + Math.sin(-Math.PI * 0.45) * 140 };
-            const bottomTip = { x: hx + Math.cos(Math.PI * 0.45) * 140, y: hy + Math.sin(Math.PI * 0.45) * 140 };
+            // Tips
+            const topTip = { x: hx + Math.cos(-Math.PI * 0.45) * 150, y: hy + Math.sin(-Math.PI * 0.45) * 150 };
+            const bottomTip = { x: hx + Math.cos(Math.PI * 0.45) * 150, y: hy + Math.sin(Math.PI * 0.45) * 150 };
 
             ctx.fillStyle = '#FF4500';
             ctx.beginPath();
-            ctx.arc(topTip.x, topTip.y, 10, 0, Math.PI * 2);
-            ctx.arc(bottomTip.x, bottomTip.y, 10, 0, Math.PI * 2);
+            ctx.arc(topTip.x, topTip.y, 12, 0, Math.PI * 2);
+            ctx.arc(bottomTip.x, bottomTip.y, 12, 0, Math.PI * 2);
             ctx.fill();
 
-            // Bow String (నారి)
+            // Bow String
             ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(topTip.x, topTip.y);
 
             if (stringPullPos) {
-                // String drawn back by right hand
                 ctx.lineTo(stringPullPos.x, stringPullPos.y);
                 ctx.lineTo(bottomTip.x, bottomTip.y);
                 ctx.stroke();
 
-                // Render Active Arrow on String
                 drawLoadedArrow(ctx, stringPullPos, { x: hx, y: hy });
             } else {
-                // Rest string
                 ctx.lineTo(bottomTip.x, bottomTip.y);
                 ctx.stroke();
             }
@@ -383,16 +401,16 @@
             ctx.restore();
         }
 
-        // Draw Loaded Glowing Arrow Ready to Launch
+        // Draw Loaded Arrow
         function drawLoadedArrow(ctx, tail, bowCenter) {
             const angle = Math.atan2(bowCenter.y - tail.y, bowCenter.x - tail.x);
-            const arrowLength = 220;
+            const arrowLength = 230;
             const headX = tail.x + Math.cos(angle) * arrowLength;
             const headY = tail.y + Math.sin(angle) * arrowLength;
 
             ctx.save();
             ctx.shadowColor = '#00FFFF';
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 25;
 
             // Arrow Shaft
             ctx.strokeStyle = '#FFF8DC';
@@ -402,38 +420,55 @@
             ctx.lineTo(headX, headY);
             ctx.stroke();
 
-            // Glowing Head
+            // Glowing Arrow Head
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
-            ctx.arc(headX, headY, 8, 0, Math.PI * 2);
+            ctx.arc(headX, headY, 10, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.restore();
         }
 
-        // Main Holistic Pipeline Results Callback
+        // Main Holistic Callback Function
         function onResults(results) {
-            // Update Status Badge
             statusDot.className = "w-3 h-3 rounded-full bg-emerald-500";
             statusText.innerText = "RAMA VISION ACTIVE";
 
-            // Clear Canvas
+            // Clear Screen
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-            // Draw Webcam Feed Directly
+            // Draw Raw Webcam Feed
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-            // 1. Render Royal Armor on Body Pose
+            // ==========================================
+            // 1. POSE TRACKING & SKELETON DOTS
+            // ==========================================
             if (results.poseLandmarks) {
+                poseStatusEl.innerText = "TRACKING ACTIVE";
+                poseStatusEl.className = "font-bold text-emerald-400";
+
+                // Draw Diagnostic Body Connectors & Landmarks (Cyan / Gold)
+                drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: 'rgba(0, 255, 255, 0.4)', lineWidth: 2 });
+                drawLandmarks(canvasCtx, results.poseLandmarks, { color: 'rgba(255, 215, 0, 0.8)', lineWidth: 1, radius: 3 });
+
+                // Render Armor
                 drawSriRamaArmor(canvasCtx, results.poseLandmarks);
+            } else {
+                poseStatusEl.innerText = "NOT DETECTED";
+                poseStatusEl.className = "font-bold text-red-400";
             }
 
             let bowActive = false;
             let currentStringPos = null;
 
-            // 2. Process Left Hand (Kodandam Hand)
-            // Note: Holistic leftHandLandmarks corresponds to the left arm
+            // ==========================================
+            // 2. LEFT HAND TRACKING (KODANDAM HAND)
+            // ==========================================
             if (results.leftHandLandmarks) {
+                // Draw Left Hand Skeleton Dots
+                drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, { color: '#00FFFF', lineWidth: 2 });
+                drawLandmarks(canvasCtx, results.leftHandLandmarks, { color: '#FFD700', lineWidth: 1, radius: 4 });
+
                 const isFistFormed = isFist(results.leftHandLandmarks);
                 const wrist = results.leftHandLandmarks[0];
                 bowPosition = {
@@ -443,11 +478,27 @@
 
                 if (isFistFormed) {
                     bowActive = true;
+                    leftHandStatusEl.innerText = "BOW READY (పిడికిలి ✅)";
+                    leftHandStatusEl.className = "font-bold text-amber-400 animate-pulse";
+                } else {
+                    leftHandStatusEl.innerText = "OPEN HAND (పిడికిలి పట్టండి)";
+                    leftHandStatusEl.className = "font-bold text-yellow-300";
                 }
+            } else {
+                leftHandStatusEl.innerText = "NOT IN VIEW";
+                leftHandStatusEl.className = "font-bold text-red-400";
             }
 
-            // 3. Process Right Hand (Pulling Arrow Gesture)
+         
+
+            // ==========================================
+            // 3. RIGHT HAND TRACKING (ARROW DRAW HAND)
+            // ==========================================
             if (results.rightHandLandmarks) {
+                // Draw Right Hand Skeleton Dots
+                drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, { color: '#FF00FF', lineWidth: 2 });
+                drawLandmarks(canvasCtx, results.rightHandLandmarks, { color: '#FFA500', lineWidth: 1, radius: 4 });
+
                 const wrist = results.rightHandLandmarks[0];
                 const pinch = isThreeFingerPinch(results.rightHandLandmarks);
                 const rHandPos = {
@@ -459,24 +510,35 @@
                     isArrowLoaded = true;
                     arrowTailPosition = rHandPos;
                     currentStringPos = rHandPos;
+                    rightHandStatusEl.innerText = "ARROW LOADED (నారి సిద్ధం ✅)";
+                    rightHandStatusEl.className = "font-bold text-emerald-400 animate-pulse";
                 } else if (isArrowLoaded && !pinch && bowActive) {
-                    // Finger released -> Shoot Arrow!
+                    // Fingers released -> Release arrow!
                     arrows.push(new Arrow(arrowTailPosition.x, arrowTailPosition.y, bowPosition.x, bowPosition.y));
                     playArrowReleaseSound();
                     isArrowLoaded = false;
+                    rightHandStatusEl.innerText = "ARROW RELEASED 🏹";
+                    rightHandStatusEl.className = "font-bold text-cyan-300";
+                } else {
+                    rightHandStatusEl.innerText = pinch ? "PINCH ACTIVE" : "READY TO PINCH";
+                    rightHandStatusEl.className = "font-bold text-blue-300";
                 }
             } else {
-                if (isArrowLoaded) {
-                    isArrowLoaded = false;
-                }
+                if (isArrowLoaded) isArrowLoaded = false;
+                rightHandStatusEl.innerText = "NOT IN VIEW";
+                rightHandStatusEl.className = "font-bold text-red-400";
             }
 
-            // 4. Render Kodandam if Hand is Active
+            // ==========================================
+            // 4. RENDER KODANDAM BOW
+            // ==========================================
             if (bowActive) {
                 drawKodandamBow(canvasCtx, bowPosition, currentStringPos);
             }
 
-            // 5. Update & Draw Active Arrows in Flight
+            // ==========================================
+            // 5. UPDATE & DRAW FLIGHT ARROWS
+            // ==========================================
             for (let i = arrows.length - 1; i >= 0; i--) {
                 arrows[i].update();
                 arrows[i].draw(canvasCtx);
@@ -485,7 +547,9 @@
                 }
             }
 
-            // 6. Update & Draw Divine Particles
+            // ==========================================
+            // 6. UPDATE & DRAW PARTICLES
+            // ==========================================
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].update();
                 particles[i].draw(canvasCtx);
@@ -512,7 +576,7 @@
 
         holistic.onResults(onResults);
 
-        // Setup Webcam Stream via MediaPipe Camera Utility
+        // Setup Webcam Stream
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await holistic.send({ image: videoElement });
