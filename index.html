@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - Doctor Strange AR Engine V7 (Darkhold Edition)</title>
+    <title>FIZONYX - Doctor Strange AR Engine V7 (Darkhold & Damned Cloak)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -47,93 +47,97 @@
             pointer-events: none;
         }
 
-        /* Compact Top-Right Corner HUD Box */
+        /* Compact Top-Right Mini HUD */
         #ui-overlay {
             position: absolute;
             top: 15px;
             right: 15px;
             z-index: 10;
             background: rgba(10, 10, 15, 0.85);
-            border: 1px solid rgba(255, 60, 60, 0.5);
+            border: 1px solid rgba(255, 50, 50, 0.5);
             backdrop-filter: blur(10px);
-            padding: 12px 14px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 10px;
             box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
-            width: 200px;
+            width: 175px;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
-        h1 {
-            font-size: 0.85rem;
-            color: #ff3344;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0;
-            text-shadow: 0 0 8px rgba(255, 50, 50, 0.7);
-            text-align: center;
-        }
-
-        .status-item {
+        .hud-header {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.7rem;
-            color: #aaa;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            padding-bottom: 4px;
         }
 
-        .dot {
+        .hud-title {
+            font-size: 0.75rem;
+            color: #ff3344;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
             width: 8px;
             height: 8px;
             background-color: #ef4444;
             border-radius: 50%;
             box-shadow: 0 0 8px #ef4444;
             transition: all 0.3s ease;
-            flex-shrink: 0;
         }
 
-        .dot.active {
-            background-color: #10b981;
-            box-shadow: 0 0 8px #10b981;
+        .status-dot.active {
+            background-color: #00ff66;
+            box-shadow: 0 0 8px #00ff66;
         }
 
-        .controls-grid {
+        .btn-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            margin-top: 4px;
+            gap: 5px;
         }
 
-        .action-btn {
-            background: #1a1a24;
-            color: #fff;
+        .hud-btn {
+            background: rgba(25, 25, 30, 0.9);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 6px 4px;
-            border-radius: 6px;
-            font-weight: 600;
+            color: #ddd;
             font-size: 0.65rem;
+            font-weight: 600;
+            padding: 5px 2px;
+            border-radius: 4px;
             cursor: pointer;
             text-align: center;
             transition: all 0.2s;
         }
 
-        .action-btn:hover {
-            border-color: #ffaa00;
-            color: #ffaa00;
-        }
-
-        .action-btn.darkhold-btn {
-            grid-column: span 2;
-            background: linear-gradient(135deg, #400010, #800020);
-            border-color: #ff0044;
-            color: #ffb3c1;
-        }
-
-        .action-btn.darkhold-btn.active {
-            background: linear-gradient(135deg, #800020, #ff0044);
+        .hud-btn:hover {
+            border-color: #ff3344;
             color: #fff;
-            box-shadow: 0 0 10px #ff0044;
+        }
+
+        .hud-btn.active {
+            background: #ff2233;
+            color: #000;
+            border-color: #ff5566;
+            box-shadow: 0 0 8px #ff2233;
+        }
+
+        .hud-btn.orange-active {
+            background: #ff9900;
+            color: #000;
+            border-color: #ffaa00;
+            box-shadow: 0 0 8px #ff9900;
+        }
+
+        .hud-btn.green-active {
+            background: #00ff88;
+            color: #000;
+            border-color: #00ffaa;
+            box-shadow: 0 0 8px #00ff88;
         }
 
         #loading {
@@ -150,7 +154,7 @@
             height: 50px;
             border: 3px solid rgba(255, 50, 50, 0.2);
             border-radius: 50%;
-            border-top-color: #ff2244;
+            border-top-color: #ff2233;
             animation: spin 0.8s linear infinite;
             margin: 0 auto 12px auto;
         }
@@ -160,7 +164,6 @@
         }
     </style>
 
-    <!-- MediaPipe Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
@@ -172,26 +175,20 @@
 
         <div id="loading">
             <div class="spinner"></div>
-            <p id="loading-text" style="font-size: 0.85rem; color: #ff5566;">Channeling Darkhold Damned Engine V7...</p>
+            <p id="loading-text" style="font-size: 0.85rem; color: #ff3344;">Summoning Darkhold Realm V7...</p>
         </div>
 
-        <!-- Top-Right Compact Square UI -->
         <div id="ui-overlay">
-            <h1>Mystic Arts V7</h1>
+            <div class="hud-header">
+                <span class="hud-title">FIZONYX V7</span>
+                <div id="status-dot" class="status-dot"></div>
+            </div>
             
-            <div class="status-item">
-                <div id="status-dot" class="dot"></div>
-                <span id="status-text">Hand: Offline</span>
-            </div>
-            <div class="status-item">
-                <div id="voice-dot" class="dot"></div>
-                <span id="voice-text">Voice: Namaste to Talk</span>
-            </div>
-
-            <div class="controls-grid">
-                <button class="action-btn" onclick="activateShield('orange')">Orange Shield</button>
-                <button class="action-btn" onclick="activateShield('time')">Time Shield</button>
-                <button id="darkhold-btn" class="action-btn darkhold-btn" onclick="toggleDarkhold()">Darkhold Souls (Cloak)</button>
+            <div class="btn-grid">
+                <button id="btn-orange" class="hud-btn" onclick="toggleEffect('orange')">Eldritch</button>
+                <button id="btn-time" class="hud-btn" onclick="toggleEffect('time')">Time</button>
+                <button id="btn-darkhold" class="hud-btn" onclick="toggleEffect('darkhold')">Chaos Orb</button>
+                <button id="btn-cloak" class="hud-btn" onclick="toggleEffect('cloak')">Damned Cloak</button>
             </div>
         </div>
     </div>
@@ -199,36 +196,26 @@
     <script>
         /**
          * FIZONYX Senior Software Engineering Team
-         * Doctor Strange AR Engine V7 (Darkhold Edition)
+         * Doctor Strange AR Engine - Version 7 (Darkhold & Cloak of Damned Integration)
          */
 
         const videoElement = document.getElementById('input-video');
         const canvasElement = document.getElementById('output-canvas');
         const canvasCtx = canvasElement.getContext('2d');
-
         const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('status-text');
-        const voiceDot = document.getElementById('voice-dot');
-        const voiceText = document.getElementById('voice-text');
-        const darkholdBtn = document.getElementById('darkhold-btn');
         const loadingScreen = document.getElementById('loading');
 
         // State Machine
         let activeShieldType = null;
-        let shieldTimer = null;
-        let isVoiceListening = false;
-        let speechRecognitionInstance = null;
+        let isDarkholdActive = false;
+        let isCloakActive = false;
 
         let portalRadius = 0;
         let targetPortalRadius = 0;
         let totalRotation = 0;
         let lastAngle = null;
 
-        // Darkhold State
-        let isDarkholdActive = false;
-        let darkholdWave = 0;
-
-        // Shield Rotations
+        // Shield Rotation Trackers
         let rotSlowCW = 0;
         let rotFastCW = 0;
         let rotSlowCCW = 0;
@@ -241,235 +228,222 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        function toggleDarkhold() {
-            isDarkholdActive = !isDarkholdActive;
-            if (isDarkholdActive) {
-                darkholdBtn.classList.add('active');
-            } else {
-                darkholdBtn.classList.remove('active');
+        function toggleEffect(type) {
+            if (type === 'orange') {
+                activeShieldType = (activeShieldType === 'orange') ? null : 'orange';
+            } else if (type === 'time') {
+                activeShieldType = (activeShieldType === 'time') ? null : 'time';
+            } else if (type === 'darkhold') {
+                isDarkholdActive = !isDarkholdActive;
+            } else if (type === 'cloak') {
+                isCloakActive = !isCloakActive;
             }
+            updateButtonUI();
         }
 
-        // 1. Voice Recognition
-        function setupVoiceRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                voiceText.innerText = "Voice: Not Supported";
-                return;
-            }
-
-            speechRecognitionInstance = new SpeechRecognition();
-            speechRecognitionInstance.continuous = true;
-            speechRecognitionInstance.interimResults = false;
-            speechRecognitionInstance.lang = 'en-US';
-
-            speechRecognitionInstance.onresult = (event) => {
-                const current = event.resultIndex;
-                const transcript = event.results[current][0].transcript.trim().toLowerCase();
-                
-                if (transcript.includes('orange') || transcript.includes('magic')) {
-                    activateShield('orange');
-                } else if (transcript.includes('time') || transcript.includes('green')) {
-                    activateShield('time');
-                } else if (transcript.includes('dark') || transcript.includes('damned') || transcript.includes('souls')) {
-                    toggleDarkhold();
-                }
-            };
-
-            speechRecognitionInstance.onerror = (e) => {
-                if (e.error !== 'no-speech') console.warn("Voice error:", e.error);
-            };
-
-            speechRecognitionInstance.onend = () => {
-                if (isVoiceListening) {
-                    try { speechRecognitionInstance.start(); } catch(e){}
-                }
-            };
+        function updateButtonUI() {
+            document.getElementById('btn-orange').className = 'hud-btn' + (activeShieldType === 'orange' ? ' orange-active' : '');
+            document.getElementById('btn-time').className = 'hud-btn' + (activeShieldType === 'time' ? ' green-active' : '');
+            document.getElementById('btn-darkhold').className = 'hud-btn' + (isDarkholdActive ? ' active' : '');
+            document.getElementById('btn-cloak').className = 'hud-btn' + (isCloakActive ? ' active' : '');
         }
 
-        function setVoiceState(listen) {
-            if (listen === isVoiceListening) return;
-            isVoiceListening = listen;
-
-            if (listen) {
-                voiceDot.classList.add('active');
-                voiceText.innerText = "Voice: Listening...";
-                try { speechRecognitionInstance && speechRecognitionInstance.start(); } catch(e){}
-            } else {
-                voiceDot.classList.remove('active');
-                voiceText.innerText = "Voice: Namaste to Talk";
-                try { speechRecognitionInstance && speechRecognitionInstance.stop(); } catch(e){}
-            }
-        }
-
-        function activateShield(type) {
-            activeShieldType = type;
-            if (shieldTimer) clearTimeout(shieldTimer);
-            shieldTimer = setTimeout(() => {
-                activeShieldType = null;
-            }, 7000);
-        }
-
-        // 2. Trailing Spark Streaks Engine
-        class SparkStreak {
-            constructor(cx, cy, baseAngle, radius) {
-                this.cx = cx;
-                this.cy = cy;
-                this.baseAngle = baseAngle;
-                this.distance = radius + (Math.random() * 24 - 12);
-                this.speed = Math.random() * 0.08 + 0.04;
-                this.radialVel = Math.random() * 2.5 - 0.8;
-                
-                const curX = this.cx + Math.cos(this.baseAngle) * this.distance;
-                const curY = this.cy + Math.sin(this.baseAngle) * this.distance;
-                this.history = [{x: curX, y: curY}];
-
-                this.size = Math.random() * 2.5 + 1.2;
-                this.hue = Math.random() * 15 + 25;
-                this.alpha = 1.0;
-                this.decay = Math.random() * 0.03 + 0.015;
-                this.maxHistory = Math.floor(Math.random() * 6) + 4;
-                this.active = true;
-            }
-
-            update(cx, cy, radius) {
-                this.cx = cx;
-                this.cy = cy;
-                this.baseAngle += this.speed;
-                this.distance += this.radialVel;
-
-                const curX = this.cx + Math.cos(this.baseAngle) * this.distance;
-                const curY = this.cy + Math.sin(this.baseAngle) * this.distance;
-
-                this.history.push({x: curX, y: curY});
-                if (this.history.length > this.maxHistory) {
-                    this.history.shift();
-                }
-
-                this.alpha -= this.decay;
-                if (this.alpha <= 0) {
-                    this.active = false;
+        // --- PARTICLE SYSTEM ---
+        class UnifiedParticleSystem {
+            constructor(max = 1200) {
+                this.particles = [];
+                for (let i = 0; i < max; i++) {
+                    this.particles.push({
+                        x: 0, y: 0, vx: 0, vy: 0,
+                        life: 0, size: 0, color: '#ff0033',
+                        mode: 'chaos', active: false
+                    });
                 }
             }
 
-            draw(ctx) {
-                if (this.history.length < 2) return;
+            spawn(x, y, count = 2, mode = 'chaos') {
+                let spawned = 0;
+                for (let p of this.particles) {
+                    if (!p.active) {
+                        p.x = x + (Math.random() - 0.5) * 16;
+                        p.y = y + (Math.random() - 0.5) * 16;
+                        const ang = Math.random() * Math.PI * 2;
+                        const spd = Math.random() * 4 + 1.5;
+                        p.vx = Math.cos(ang) * spd;
+                        p.vy = Math.sin(ang) * spd;
+                        p.life = 1.0;
+                        p.mode = mode;
 
+                        if (mode === 'chaos') {
+                            p.size = Math.random() * 6 + 3;
+                            p.color = Math.random() > 0.4 ? '#ff1122' : '#220005';
+                        } else if (mode === 'green') {
+                            p.size = Math.random() * 3 + 1.5;
+                            p.color = Math.random() > 0.3 ? '#00ff88' : '#e0fffa';
+                        } else if (mode === 'portal') {
+                            p.size = Math.random() * 3 + 1.5;
+                            p.color = Math.random() > 0.5 ? '#ffaa00' : '#ff3300';
+                        }
+
+                        p.active = true;
+                        spawned++;
+                        if (spawned >= count) break;
+                    }
+                }
+            }
+
+            updateAndRender(ctx) {
                 ctx.save();
-                ctx.beginPath();
-                ctx.moveTo(this.history[0].x, this.history[0].y);
-                for (let i = 1; i < this.history.length; i++) {
-                    ctx.lineTo(this.history[i].x, this.history[i].y);
-                }
+                for (let p of this.particles) {
+                    if (p.active) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.life -= (p.mode === 'chaos' ? 0.025 : 0.04);
 
-                ctx.strokeStyle = `hsla(${this.hue}, 100%, 65%, ${this.alpha})`;
-                ctx.lineWidth = this.size;
-                ctx.lineCap = 'round';
-                ctx.shadowBlur = this.size * 3;
-                ctx.shadowColor = `hsla(${this.hue}, 100%, 50%, 1)`;
-                ctx.stroke();
+                        if (p.life <= 0) {
+                            p.active = false;
+                            continue;
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                        ctx.fillStyle = p.color;
+                        if (p.mode === 'chaos') {
+                            ctx.shadowBlur = 12;
+                            ctx.shadowColor = '#ff0033';
+                        } else {
+                            ctx.shadowBlur = 6;
+                            ctx.shadowColor = p.color;
+                        }
+                        ctx.globalAlpha = p.life;
+                        ctx.fill();
+                    }
+                }
                 ctx.restore();
             }
         }
 
-        const portalSparks = [];
+        const particleEngine = new UnifiedParticleSystem();
 
-        // 3. Darkhold: Cloak of the Damned & Demon Arms (వెనుక ఉండే డార్క్ హాండ్స్ & కేప్)
-        function renderDarkholdCloakAndArms(ctx, centerX, centerY, scale) {
+        // --- 1. CLOAK OF THE DAMNED (DEMONIC HANDS WINGS) ---
+        function renderCloakOfTheDamned(ctx, spineBase, scale) {
             ctx.save();
-            darkholdWave += 0.04;
+            ctx.translate(spineBase.x, spineBase.y);
 
-            // 1. Dark Smoky Cape / Cloak of the Damned (వెనుక డార్క్ మ్యాజికల్ కేప్/టవల్)
-            const cloakGradient = ctx.createRadialGradient(centerX, centerY + 80, 20, centerX, centerY + 180, scale * 3.5);
-            cloakGradient.addColorStop(0, 'rgba(50, 0, 15, 0.85)');
-            cloakGradient.addColorStop(0.4, 'rgba(20, 0, 5, 0.7)');
-            cloakGradient.addColorStop(0.8, 'rgba(100, 0, 20, 0.4)');
-            cloakGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            const time = Date.now() * 0.003;
+            const armCount = 7; // Arms per side
 
-            ctx.fillStyle = cloakGradient;
+            // Render Shadowy Tendrils / Demonic Skeletal Arms
+            for (let side = -1; side <= 1; side += 2) {
+                for (let i = 0; i < armCount; i++) {
+                    ctx.save();
+                    const baseAngle = (side * (0.3 + i * 0.22)) + Math.sin(time + i) * 0.08;
+                    const armLength = (scale * 2.2) * (0.65 + (i / armCount) * 0.5);
+
+                    ctx.rotate(baseAngle - Math.PI / 2);
+
+                    // Demonic Arm Joint 1
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    const j1x = armLength * 0.45;
+                    const j1y = Math.sin(time * 2 + i) * 15;
+                    const hx = armLength;
+                    const hy = Math.sin(time * 2 + i + 1) * 25;
+
+                    ctx.quadraticCurveTo(j1x, j1y, hx, hy);
+                    ctx.strokeStyle = '#050205';
+                    ctx.lineWidth = 14 * (1 - i / (armCount + 2));
+                    ctx.shadowColor = '#ff0022';
+                    ctx.shadowBlur = 20;
+                    ctx.stroke();
+
+                    // Inner Malice Core Red Line
+                    ctx.strokeStyle = 'rgba(255, 0, 50, 0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Skeletal Claws / Hands at end of each arm
+                    ctx.translate(hx, hy);
+                    ctx.rotate(Math.sin(time * 3 + i) * 0.2);
+                    for (let f = -2; f <= 2; f++) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        const fx = 25 * Math.cos(f * 0.35);
+                        const fy = 25 * Math.sin(f * 0.35);
+                        ctx.lineTo(fx, fy);
+                        ctx.strokeStyle = '#080208';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+
+                        ctx.strokeStyle = '#ff1133';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+
+                    ctx.restore();
+                }
+            }
+
+            // Central Dark Void Smoke Base
+            const smokeGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, scale * 1.4);
+            smokeGrad.addColorStop(0, 'rgba(0,0,0,0.95)');
+            smokeGrad.addColorStop(0.6, 'rgba(40,0,10,0.6)');
+            smokeGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = smokeGrad;
             ctx.beginPath();
-            ctx.moveTo(centerX - scale * 2.2, centerY + 50);
-            ctx.quadraticCurveTo(centerX - scale * 3.2, centerY + scale * 3.5 + Math.sin(darkholdWave) * 15, centerX, centerY + scale * 4.2);
-            ctx.quadraticCurveTo(centerX + scale * 3.2, centerY + scale * 3.5 + Math.cos(darkholdWave) * 15, centerX + scale * 2.2, centerY + 50);
-            ctx.closePath();
+            ctx.arc(0, 0, scale * 1.4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Floating Darkhold Necromancy Red Spheres / Orbs
-            for (let i = 0; i < 6; i++) {
-                const orbAng = i * (Math.PI / 3) + darkholdWave * 0.5;
-                const orbDist = scale * 2.3 + Math.sin(darkholdWave + i) * 20;
-                const ox = centerX + Math.cos(orbAng) * orbDist;
-                const oy = centerY + Math.sin(orbAng) * (orbDist * 0.85);
-
-                ctx.beginPath();
-                ctx.arc(ox, oy, 12 + Math.sin(darkholdWave * 2 + i) * 3, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 20, 50, 0.9)';
-                ctx.shadowColor = '#ff0033';
-                ctx.shadowBlur = 20;
-                ctx.fill();
-            }
-
-            // 2. Skeletal Demon Arms Sprouting Outwards (Souls of the Damned Arms)
-            const armCount = 10;
-            for (let i = 0; i < armCount; i++) {
-                const side = i % 2 === 0 ? 1 : -1;
-                const tier = Math.floor(i / 2);
-                const angleOffset = (tier * 0.28) - 0.2 + Math.sin(darkholdWave + i * 0.5) * 0.08;
-                
-                const startX = centerX + (side * scale * 0.6);
-                const startY = centerY + (tier * 25) - 30;
-
-                const elbowX = startX + (side * (scale * 1.3 + tier * 15));
-                const elbowY = startY - 40 - (tier * 10) + Math.sin(darkholdWave * 1.5 + i) * 12;
-
-                const handX = elbowX + (side * (scale * 1.1 + tier * 20));
-                const handY = elbowY - 20 + Math.cos(darkholdWave * 1.5 + i) * 15;
-
-                // Draw Dark Bone/Shadow Limb
-                ctx.save();
-                ctx.shadowColor = '#ff0033';
-                ctx.shadowBlur = 15;
-                ctx.strokeStyle = 'rgba(15, 5, 8, 0.95)';
-                ctx.lineWidth = 14;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-
-                // Upper Arm & Forearm
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(elbowX, elbowY);
-                ctx.lineTo(handX, handY);
-                ctx.stroke();
-
-                // Inner Skeletal Blood Vein Line
-                ctx.strokeStyle = 'rgba(255, 30, 60, 0.7)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(elbowX, elbowY);
-                ctx.lineTo(handX, handY);
-                ctx.stroke();
-
-                // Skeletal Claws / Dark Fingers
-                for (let f = -2; f <= 2; f++) {
-                    const clawAngle = (side > 0 ? 0 : Math.PI) + (f * 0.3) + Math.sin(darkholdWave * 2 + f) * 0.15;
-                    const clawLen = 22 + Math.abs(f) * -2;
-                    ctx.strokeStyle = 'rgba(10, 2, 5, 0.95)';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(handX, handY);
-                    ctx.lineTo(handX + Math.cos(clawAngle) * clawLen, handY + Math.sin(clawAngle) * clawLen);
-                    ctx.stroke();
-                }
-
-                ctx.restore();
-            }
-
+            particleEngine.spawn(spineBase.x, spineBase.y, 3, 'chaos');
             ctx.restore();
         }
 
-        // 4. Multi-Layer SVG Shield Renderer
-        function drawMultiLayerEldritchShield(ctx, x, y, radius, isGreen = false) {
+        // --- 2. DARKHOLD CHAOS MAGIC ORBS ---
+        function renderDarkholdChaosOrbs(ctx, centerX, centerY, scale) {
+            ctx.save();
+            const time = Date.now() * 0.0025;
+            const orbCount = 6;
+            const orbitRadius = scale * 1.6;
+
+            for (let i = 0; i < orbCount; i++) {
+                const angle = (i * (Math.PI * 2 / orbCount)) + time;
+                const ox = centerX + Math.cos(angle) * orbitRadius;
+                const oy = centerY + Math.sin(angle * 1.5) * (orbitRadius * 0.65);
+                const orbSize = 16 + Math.sin(time * 3 + i) * 4;
+
+                // Dark Energy Smoke Core
+                const orbGrad = ctx.createRadialGradient(ox, oy, 2, ox, oy, orbSize * 1.8);
+                orbGrad.addColorStop(0, '#ffffff');
+                orbGrad.addColorStop(0.25, '#ff0033');
+                orbGrad.addColorStop(0.7, '#2b0008');
+                orbGrad.addColorStop(1, 'transparent');
+
+                ctx.beginPath();
+                ctx.arc(ox, oy, orbSize * 1.8, 0, Math.PI * 2);
+                ctx.fillStyle = orbGrad;
+                ctx.shadowColor = '#ff0033';
+                ctx.shadowBlur = 25;
+                ctx.fill();
+
+                // Tendril Streams connecting Orbs
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.quadraticCurveTo(
+                    centerX + (Math.random() - 0.5) * 30,
+                    centerY + (Math.random() - 0.5) * 30,
+                    ox, oy
+                );
+                ctx.strokeStyle = 'rgba(255, 0, 50, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                particleEngine.spawn(ox, oy, 2, 'chaos');
+            }
+            ctx.restore();
+        }
+
+        // --- 3. MULTI-LAYER ELDRITCH / TIME SHIELD ---
+        function drawMultiLayerShield(ctx, x, y, radius, isGreen = false) {
             ctx.save();
             ctx.translate(x, y);
 
@@ -552,7 +526,6 @@
             drawEquilateral(190, 2.35);
             drawEquilateral(190, 4.45);
             ctx.restore();
-            
 
             // Layer 4
             ctx.save();
@@ -560,26 +533,16 @@
             circle(260, brightColor, 4);
             circle(275, baseColor, 2, [8, 12]);
             circle(285, baseColor, 2);
-            const nodeDist = 285 * scale;
-            const nodes = [[0, nodeDist], [0, -nodeDist], [nodeDist, 0], [-nodeDist, 0]];
-            ctx.fillStyle = brightColor;
-            for (let n of nodes) {
-                ctx.beginPath();
-                ctx.arc(n[0], n[1], 4.5, 0, Math.PI * 2);
-                ctx.shadowColor = shadowClr;
-                ctx.shadowBlur = 10;
-                ctx.fill();
-            }
             ctx.restore();
 
             ctx.restore();
         }
 
-        // 5. Cosmic Space Portal
+        // --- 4. COSMIC SPACE PORTAL ---
         function renderCosmicPortal(ctx, x, y, radius) {
             if (radius < 15) return;
-
             ctx.save();
+
             ctx.save();
             ctx.beginPath();
             ctx.arc(x, y, radius * 0.78, 0, Math.PI * 2);
@@ -596,7 +559,7 @@
             ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
 
             const time = Date.now() * 0.002;
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 25; i++) {
                 const starAngle = i * 137.5;
                 const starDist = ((i * 13 + time * 20) % (radius * 0.72));
                 const sx = x + Math.cos(starAngle) * starDist;
@@ -605,8 +568,6 @@
                 ctx.beginPath();
                 ctx.arc(sx, sy, (i % 3) + 1, 0, Math.PI * 2);
                 ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#ffd700';
-                ctx.shadowColor = '#00ffff';
-                ctx.shadowBlur = 8;
                 ctx.fill();
             }
             ctx.restore();
@@ -619,40 +580,20 @@
             ctx.shadowBlur = 15;
             ctx.stroke();
 
-            for (let i = 0; i < 12; i++) {
-                const randomAngle = Math.random() * Math.PI * 2;
-                portalSparks.push(new SparkStreak(x, y, randomAngle, radius));
-            }
-
-            for (let i = portalSparks.length - 1; i >= 0; i--) {
-                portalSparks[i].update(x, y, radius);
-                portalSparks[i].draw(ctx);
-                if (!portalSparks[i].active) {
-                    portalSparks.splice(i, 1);
-                }
-            }
-
+            particleEngine.spawn(x, y, 3, 'portal');
             ctx.restore();
         }
 
-        // 6. 5-Finger Whips
+        // --- 5. 5-FINGER WHIPS ---
         function renderFiveFingerWhips(ctx, hand1, hand2) {
             const pairs = [4, 8, 12, 16, 20];
-
             pairs.forEach((fingerIdx, idx) => {
-                const p1 = {
-                    x: hand1[fingerIdx].x * canvasElement.width,
-                    y: hand1[fingerIdx].y * canvasElement.height
-                };
-                const p2 = {
-                    x: hand2[fingerIdx].x * canvasElement.width,
-                    y: hand2[fingerIdx].y * canvasElement.height
-                };
+                const p1 = { x: hand1[fingerIdx].x * canvasElement.width, y: hand1[fingerIdx].y * canvasElement.height };
+                const p2 = { x: hand2[fingerIdx].x * canvasElement.width, y: hand2[fingerIdx].y * canvasElement.height };
 
                 ctx.save();
                 ctx.shadowColor = '#ff6600';
-                ctx.shadowBlur = 18;
-
+                ctx.shadowBlur = 16;
                 const midX = (p1.x + p2.x) / 2;
                 const midY = (p1.y + p2.y) / 2 + (idx * 12 + 18);
 
@@ -669,24 +610,11 @@
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
-
                 ctx.restore();
             });
         }
 
-        function isNamastePose(hand1, hand2) {
-            const wrist1 = hand1[0];
-            const wrist2 = hand2[0];
-            const middleTip1 = hand1[12];
-            const middleTip2 = hand2[12];
-
-            const wristDist = Math.hypot(wrist1.x - wrist2.x, wrist1.y - wrist2.y);
-            const tipDist = Math.hypot(middleTip1.x - middleTip2.x, middleTip1.y - middleTip2.y);
-
-            return wristDist < 0.22 && tipDist < 0.18;
-        }
-
-        // Frame Processing Loop
+        // Frame Processing
         function onResults(results) {
             if (loadingScreen.style.display !== 'none') {
                 loadingScreen.style.display = 'none';
@@ -695,121 +623,86 @@
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-            // Draw Darkhold Souls Behind User if Active
-            if (isDarkholdActive) {
-                let chestX = canvasElement.width * 0.5;
-                let chestY = canvasElement.height * 0.55;
-                let scale = 110;
-
-                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    const wrist = results.multiHandLandmarks[0][0];
-                    chestX = wrist.x * canvasElement.width;
-                    chestY = wrist.y * canvasElement.height + 60;
-                }
-
-                renderDarkholdCloakAndArms(canvasCtx, chestX, chestY, scale);
-            }
-
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 statusDot.classList.add('active');
-                statusText.innerText = `Hands: ${results.multiHandLandmarks.length} Tracked`;
 
-                // Draw Dots
+                // Render Joint Dots
                 results.multiHandLandmarks.forEach((landmarks) => {
                     landmarks.forEach((lm, idx) => {
                         const px = lm.x * canvasElement.width;
                         const py = lm.y * canvasElement.height;
                         canvasCtx.beginPath();
-                        canvasCtx.arc(px, py, [4, 8, 12, 16, 20].includes(idx) ? 5 : 3.5, 0, Math.PI * 2);
+                        canvasCtx.arc(px, py, [4, 8, 12, 16, 20].includes(idx) ? 4.5 : 3, 0, Math.PI * 2);
                         canvasCtx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#00ffff' : '#ff003c';
                         canvasCtx.shadowColor = '#00ffaa';
-                        canvasCtx.shadowBlur = 6;
+                        canvasCtx.shadowBlur = 5;
                         canvasCtx.fill();
                     });
                 });
+
+                // Calculate Spine / Center Reference
+                const wrist0 = results.multiHandLandmarks[0][0];
+                const centerRef = {
+                    x: wrist0.x * canvasElement.width,
+                    y: (wrist0.y * canvasElement.height) + 120
+                };
+
+                // Render Demonic Cloak of the Damned
+                if (isCloakActive) {
+                    renderCloakOfTheDamned(canvasCtx, centerRef, 160);
+                }
+
+                // Render Darkhold Chaos Magic Orbs
+                if (isDarkholdActive) {
+                    renderDarkholdChaosOrbs(canvasCtx, centerRef.x, centerRef.y - 80, 140);
+                }
 
                 if (results.multiHandLandmarks.length >= 2) {
                     const hand1 = results.multiHandLandmarks[0];
                     const hand2 = results.multiHandLandmarks[1];
 
-                    if (isNamastePose(hand1, hand2)) {
-                        setVoiceState(true);
-                    } else {
-                        setVoiceState(false);
-                    }
-
-                    const isSlingPose = hand1[8].y < hand1[6].y && 
-                                        hand1[12].y < hand1[10].y && 
-                                        hand1[16].y > hand1[14].y;
-
+                    // Sling Ring Portal Check
+                    const isSlingPose = hand1[8].y < hand1[6].y && hand1[12].y < hand1[10].y && hand1[16].y > hand1[14].y;
                     if (isSlingPose) {
-                        const portalCenter = {
-                            x: hand1[9].x * canvasElement.width,
-                            y: hand1[9].y * canvasElement.height
-                        };
-
-                        const rotatingTip = {
-                            x: hand2[8].x * canvasElement.width,
-                            y: hand2[8].y * canvasElement.height
-                        };
-
+                        const portalCenter = { x: hand1[9].x * canvasElement.width, y: hand1[9].y * canvasElement.height };
+                        const rotatingTip = { x: hand2[8].x * canvasElement.width, y: hand2[8].y * canvasElement.height };
                         const currentAngle = Math.atan2(rotatingTip.y - portalCenter.y, rotatingTip.x - portalCenter.x);
 
                         if (lastAngle !== null) {
                             let delta = currentAngle - lastAngle;
                             if (delta > Math.PI) delta -= Math.PI * 2;
                             if (delta < -Math.PI) delta += Math.PI * 2;
-
                             totalRotation += Math.abs(delta);
                             targetPortalRadius = Math.min(340, Math.max(50, totalRotation * 22));
                         }
                         lastAngle = currentAngle;
-
                         portalRadius += (targetPortalRadius - portalRadius) * 0.12;
                         renderCosmicPortal(canvasCtx, portalCenter.x, portalCenter.y, portalRadius);
                     } else {
                         lastAngle = null;
                         totalRotation = Math.max(0, totalRotation - 0.05);
                         portalRadius += (0 - portalRadius) * 0.12;
-
-                        if (!isNamastePose(hand1, hand2)) {
-                            renderFiveFingerWhips(canvasCtx, hand1, hand2);
-                        }
+                        renderFiveFingerWhips(canvasCtx, hand1, hand2);
                     }
                 } else {
-                    setVoiceState(false);
                     lastAngle = null;
                 }
 
-                // Render Shield
+                // Render Shields
                 if (activeShieldType) {
                     results.multiHandLandmarks.forEach((landmarks) => {
-                        const palmCenter = {
-                            x: landmarks[9].x * canvasElement.width,
-                            y: landmarks[9].y * canvasElement.height
-                        };
-                        const wrist = {
-                            x: landmarks[0].x * canvasElement.width,
-                            y: landmarks[0].y * canvasElement.height
-                        };
+                        const palmCenter = { x: landmarks[9].x * canvasElement.width, y: landmarks[9].y * canvasElement.height };
+                        const wrist = { x: landmarks[0].x * canvasElement.width, y: landmarks[0].y * canvasElement.height };
                         const handScale = Math.hypot(palmCenter.x - wrist.x, palmCenter.y - wrist.y);
-                        
-                        drawMultiLayerEldritchShield(
-                            canvasCtx, 
-                            palmCenter.x, 
-                            palmCenter.y, 
-                            handScale * 2.1, 
-                            activeShieldType === 'time'
-                        );
+                        drawMultiLayerShield(canvasCtx, palmCenter.x, palmCenter.y, handScale * 2.1, activeShieldType === 'time');
                     });
                 }
-
             } else {
                 statusDot.classList.remove('active');
-                statusText.innerText = "Hand: Offline";
-                setVoiceState(false);
+                lastAngle = null;
             }
 
+            particleEngine.updateAndRender(canvasCtx);
             canvasCtx.restore();
         }
 
@@ -835,11 +728,9 @@
             height: 720
         });
 
-        camera.start().then(() => {
-            setupVoiceRecognition();
-        }).catch((err) => {
+        camera.start().catch((err) => {
             console.error("Camera access failed:", err);
-            document.getElementById('loading-text').innerText = "Please grant camera permissions.";
+            document.getElementById('loading-text').innerText = "Camera Access Failed.";
         });
     </script>
 </body>
