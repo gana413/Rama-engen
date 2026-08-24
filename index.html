@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIZONYX - Doctor Strange AR Engine V7 (Darkhold & Damned Cloak)</title>
+    <title>FIZONYX - Doctor Strange AR Engine V7 (Darkhold Edition)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -47,97 +47,109 @@
             pointer-events: none;
         }
 
-        /* Compact Top-Right Mini HUD */
+        /* Compact Square UI at Top-Right Corner */
         #ui-overlay {
             position: absolute;
             top: 15px;
             right: 15px;
             z-index: 10;
-            background: rgba(10, 10, 15, 0.85);
-            border: 1px solid rgba(255, 50, 50, 0.5);
+            background: rgba(10, 10, 15, 0.88);
+            border: 1px solid rgba(255, 60, 60, 0.4);
             backdrop-filter: blur(10px);
             padding: 12px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
-            width: 175px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            width: 160px;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
-        .hud-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            padding-bottom: 4px;
-        }
-
-        .hud-title {
-            font-size: 0.75rem;
+        .title-badge {
+            font-size: 0.72rem;
             color: #ff3344;
             font-weight: 800;
+            text-transform: uppercase;
             letter-spacing: 1px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 4px;
+            text-shadow: 0 0 6px rgba(255, 50, 50, 0.6);
+        }
+
+        .status-indicators {
+            display: flex;
+            justify-content: space-around;
+            padding: 2px 0;
+        }
+
+        .dot-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .dot-label {
+            font-size: 0.58rem;
+            color: #888888;
             text-transform: uppercase;
         }
 
-        .status-dot {
+        .dot {
             width: 8px;
             height: 8px;
-            background-color: #ef4444;
+            background-color: #ff3330;
             border-radius: 50%;
-            box-shadow: 0 0 8px #ef4444;
+            box-shadow: 0 0 8px #ff3330;
             transition: all 0.3s ease;
         }
 
-        .status-dot.active {
+        .dot.active {
             background-color: #00ff66;
             box-shadow: 0 0 8px #00ff66;
         }
 
-        .btn-grid {
+        .controls-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 5px;
         }
 
-        .hud-btn {
-            background: rgba(25, 25, 30, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #ddd;
-            font-size: 0.65rem;
-            font-weight: 600;
-            padding: 5px 2px;
-            border-radius: 4px;
+        .btn {
+            background: #181822;
+            color: #dddddd;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: bold;
             cursor: pointer;
+            transition: all 0.2s ease;
             text-align: center;
-            transition: all 0.2s;
         }
 
-        .hud-btn:hover {
-            border-color: #ff3344;
-            color: #fff;
+        .btn:hover {
+            transform: scale(1.02);
         }
 
-        .hud-btn.active {
-            background: #ff2233;
-            color: #000;
-            border-color: #ff5566;
-            box-shadow: 0 0 8px #ff2233;
+        .btn-darkhold {
+            background: linear-gradient(135deg, #44000b, #990022);
+            border-color: #ff2255;
+            color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 0, 50, 0.4);
         }
 
-        .hud-btn.orange-active {
-            background: #ff9900;
-            color: #000;
+        .btn-orange {
+            background: linear-gradient(135deg, #663300, #ff8800);
             border-color: #ffaa00;
-            box-shadow: 0 0 8px #ff9900;
+            color: #ffffff;
         }
 
-        .hud-btn.green-active {
-            background: #00ff88;
-            color: #000;
-            border-color: #00ffaa;
-            box-shadow: 0 0 8px #00ff88;
+        .btn-time {
+            background: linear-gradient(135deg, #004422, #00bb66);
+            border-color: #00ff88;
+            color: #ffffff;
         }
 
         #loading {
@@ -150,11 +162,11 @@
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255, 50, 50, 0.2);
+            width: 55px;
+            height: 55px;
+            border: 3px solid rgba(255, 0, 60, 0.2);
             border-radius: 50%;
-            border-top-color: #ff2233;
+            border-top-color: #ff0044;
             animation: spin 0.8s linear infinite;
             margin: 0 auto 12px auto;
         }
@@ -175,20 +187,31 @@
 
         <div id="loading">
             <div class="spinner"></div>
-            <p id="loading-text" style="font-size: 0.85rem; color: #ff3344;">Summoning Darkhold Realm V7...</p>
+            <p id="loading-text" style="font-size: 0.85rem; color: #ff3355;">Summoning Darkhold Magic V7...</p>
         </div>
 
         <div id="ui-overlay">
-            <div class="hud-header">
-                <span class="hud-title">FIZONYX V7</span>
-                <div id="status-dot" class="status-dot"></div>
-            </div>
+            <div class="title-badge">Sorcery V7</div>
             
-            <div class="btn-grid">
-                <button id="btn-orange" class="hud-btn" onclick="toggleEffect('orange')">Eldritch</button>
-                <button id="btn-time" class="hud-btn" onclick="toggleEffect('time')">Time</button>
-                <button id="btn-darkhold" class="hud-btn" onclick="toggleEffect('darkhold')">Chaos Orb</button>
-                <button id="btn-cloak" class="hud-btn" onclick="toggleEffect('cloak')">Damned Cloak</button>
+            <div class="status-indicators">
+                <div class="dot-group">
+                    <div id="status-dot" class="dot"></div>
+                    <span class="dot-label">Hand</span>
+                </div>
+                <div class="dot-group">
+                    <div id="voice-dot" class="dot"></div>
+                    <span class="dot-label">Voice</span>
+                </div>
+                <div class="dot-group">
+                    <div id="dark-dot" class="dot"></div>
+                    <span class="dot-label">Dark</span>
+                </div>
+            </div>
+
+            <div class="controls-grid">
+                <button class="btn btn-darkhold" onclick="toggleDarkhold()">Darkhold Cape</button>
+                <button class="btn btn-orange" onclick="activateShield('orange')">Orange Shield</button>
+                <button class="btn btn-time" onclick="activateShield('time')">Time Shield</button>
             </div>
         </div>
     </div>
@@ -196,30 +219,40 @@
     <script>
         /**
          * FIZONYX Senior Software Engineering Team
-         * Doctor Strange AR Engine - Version 7 (Darkhold & Cloak of Damned Integration)
+         * Doctor Strange AR Engine V7 (Darkhold Multi-Arm Souls of the Damned & Multi-Spells)
          */
 
         const videoElement = document.getElementById('input-video');
         const canvasElement = document.getElementById('output-canvas');
         const canvasCtx = canvasElement.getContext('2d');
+
         const statusDot = document.getElementById('status-dot');
+        const voiceDot = document.getElementById('voice-dot');
+        const darkDot = document.getElementById('dark-dot');
         const loadingScreen = document.getElementById('loading');
 
         // State Machine
         let activeShieldType = null;
+        let shieldTimer = null;
         let isDarkholdActive = false;
-        let isCloakActive = false;
+        let darkholdTimer = null;
+        let isVoiceListening = false;
+        let speechRecognitionInstance = null;
 
+        // Dynamic Portal States
         let portalRadius = 0;
         let targetPortalRadius = 0;
         let totalRotation = 0;
         let lastAngle = null;
 
-        // Shield Rotation Trackers
+        // Shield Rotations
         let rotSlowCW = 0;
         let rotFastCW = 0;
         let rotSlowCCW = 0;
         let rotFastCCW = 0;
+
+        // Darkhold Multi-Arms Animation parameters
+        let darkholdWaveTime = 0;
 
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
@@ -228,222 +261,250 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        function toggleEffect(type) {
-            if (type === 'orange') {
-                activeShieldType = (activeShieldType === 'orange') ? null : 'orange';
-            } else if (type === 'time') {
-                activeShieldType = (activeShieldType === 'time') ? null : 'time';
-            } else if (type === 'darkhold') {
+        // 1. Voice Recognition Engine with Namaste Trigger
+        function setupVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            speechRecognitionInstance = new SpeechRecognition();
+            speechRecognitionInstance.continuous = true;
+            speechRecognitionInstance.interimResults = false;
+            speechRecognitionInstance.lang = 'en-US';
+
+            speechRecognitionInstance.onresult = (event) => {
+                const current = event.resultIndex;
+                const text = event.results[current][0].transcript.trim().toLowerCase();
+                
+                if (text.includes('dark') || text.includes('hold') || text.includes('demon')) {
+                    toggleDarkhold(true);
+                } else if (text.includes('orange') || text.includes('shield')) {
+                    activateShield('orange');
+                } else if (text.includes('time') || text.includes('green')) {
+                    activateShield('time');
+                }
+            };
+
+            speechRecognitionInstance.onerror = (e) => {
+                if (e.error !== 'no-speech') console.warn("Voice Notice: ", e.error);
+            };
+
+            speechRecognitionInstance.onend = () => {
+                if (isVoiceListening) {
+                    try { speechRecognitionInstance.start(); } catch(e){}
+                }
+            };
+        }
+
+        function setVoiceState(listen) {
+            if (listen === isVoiceListening) return;
+            isVoiceListening = listen;
+
+            if (listen) {
+                voiceDot.classList.add('active');
+                try { speechRecognitionInstance && speechRecognitionInstance.start(); } catch(e){}
+            } else {
+                voiceDot.classList.remove('active');
+                try { speechRecognitionInstance && speechRecognitionInstance.stop(); } catch(e){}
+            }
+        }
+
+        function activateShield(type) {
+            activeShieldType = type;
+            if (shieldTimer) clearTimeout(shieldTimer);
+            shieldTimer = setTimeout(() => {
+                activeShieldType = null;
+            }, 7000);
+        }
+
+        function toggleDarkhold(forceState = null) {
+            if (forceState !== null) {
+                isDarkholdActive = forceState;
+            } else {
                 isDarkholdActive = !isDarkholdActive;
-            } else if (type === 'cloak') {
-                isCloakActive = !isCloakActive;
             }
-            updateButtonUI();
+
+            if (isDarkholdActive) {
+                darkDot.classList.add('active');
+                if (darkholdTimer) clearTimeout(darkholdTimer);
+                darkholdTimer = setTimeout(() => {
+                    isDarkholdActive = false;
+                    darkDot.classList.remove('active');
+                }, 12000); // Active for 12 seconds
+            } else {
+                darkDot.classList.remove('active');
+            }
         }
 
-        function updateButtonUI() {
-            document.getElementById('btn-orange').className = 'hud-btn' + (activeShieldType === 'orange' ? ' orange-active' : '');
-            document.getElementById('btn-time').className = 'hud-btn' + (activeShieldType === 'time' ? ' green-active' : '');
-            document.getElementById('btn-darkhold').className = 'hud-btn' + (isDarkholdActive ? ' active' : '');
-            document.getElementById('btn-cloak').className = 'hud-btn' + (isCloakActive ? ' active' : '');
-        }
+        // 2. Trailing Spark Engine for Portals
+        class SparkStreak {
+            constructor(cx, cy, baseAngle, radius) {
+                this.cx = cx;
+                this.cy = cy;
+                this.baseAngle = baseAngle;
+                this.distance = radius + (Math.random() * 24 - 12);
+                this.speed = Math.random() * 0.08 + 0.04;
+                this.radialVel = Math.random() * 2.5 - 0.8;
+                
+                const curX = this.cx + Math.cos(this.baseAngle) * this.distance;
+                const curY = this.cy + Math.sin(this.baseAngle) * this.distance;
+                this.history = [{x: curX, y: curY}];
 
-        // --- PARTICLE SYSTEM ---
-        class UnifiedParticleSystem {
-            constructor(max = 1200) {
-                this.particles = [];
-                for (let i = 0; i < max; i++) {
-                    this.particles.push({
-                        x: 0, y: 0, vx: 0, vy: 0,
-                        life: 0, size: 0, color: '#ff0033',
-                        mode: 'chaos', active: false
-                    });
-                }
+                this.size = Math.random() * 2.5 + 1.2;
+                this.hue = Math.random() * 15 + 25;
+                this.alpha = 1.0;
+                this.decay = Math.random() * 0.03 + 0.015;
+                this.maxHistory = Math.floor(Math.random() * 6) + 4;
+                this.active = true;
             }
 
-            spawn(x, y, count = 2, mode = 'chaos') {
-                let spawned = 0;
-                for (let p of this.particles) {
-                    if (!p.active) {
-                        p.x = x + (Math.random() - 0.5) * 16;
-                        p.y = y + (Math.random() - 0.5) * 16;
-                        const ang = Math.random() * Math.PI * 2;
-                        const spd = Math.random() * 4 + 1.5;
-                        p.vx = Math.cos(ang) * spd;
-                        p.vy = Math.sin(ang) * spd;
-                        p.life = 1.0;
-                        p.mode = mode;
+            update(cx, cy, radius) {
+                this.cx = cx;
+                this.cy = cy;
+                this.baseAngle += this.speed;
+                this.distance += this.radialVel;
 
-                        if (mode === 'chaos') {
-                            p.size = Math.random() * 6 + 3;
-                            p.color = Math.random() > 0.4 ? '#ff1122' : '#220005';
-                        } else if (mode === 'green') {
-                            p.size = Math.random() * 3 + 1.5;
-                            p.color = Math.random() > 0.3 ? '#00ff88' : '#e0fffa';
-                        } else if (mode === 'portal') {
-                            p.size = Math.random() * 3 + 1.5;
-                            p.color = Math.random() > 0.5 ? '#ffaa00' : '#ff3300';
-                        }
+                const curX = this.cx + Math.cos(this.baseAngle) * this.distance;
+                const curY = this.cy + Math.sin(this.baseAngle) * this.distance;
 
-                        p.active = true;
-                        spawned++;
-                        if (spawned >= count) break;
-                    }
+                this.history.push({x: curX, y: curY});
+                if (this.history.length > this.maxHistory) {
+                    this.history.shift();
                 }
+
+                this.alpha -= this.decay;
+                if (this.alpha <= 0) this.active = false;
             }
 
-            updateAndRender(ctx) {
+            draw(ctx) {
+                if (this.history.length < 2) return;
+
                 ctx.save();
-                for (let p of this.particles) {
-                    if (p.active) {
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.life -= (p.mode === 'chaos' ? 0.025 : 0.04);
-
-                        if (p.life <= 0) {
-                            p.active = false;
-                            continue;
-                        }
-
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-                        ctx.fillStyle = p.color;
-                        if (p.mode === 'chaos') {
-                            ctx.shadowBlur = 12;
-                            ctx.shadowColor = '#ff0033';
-                        } else {
-                            ctx.shadowBlur = 6;
-                            ctx.shadowColor = p.color;
-                        }
-                        ctx.globalAlpha = p.life;
-                        ctx.fill();
-                    }
+                ctx.beginPath();
+                ctx.moveTo(this.history[0].x, this.history[0].y);
+                for (let i = 1; i < this.history.length; i++) {
+                    ctx.lineTo(this.history[i].x, this.history[i].y);
                 }
+
+                ctx.strokeStyle = `hsla(${this.hue}, 100%, 65%, ${this.alpha})`;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+                ctx.shadowBlur = this.size * 3;
+                ctx.shadowColor = `hsla(${this.hue}, 100%, 50%, 1)`;
+                ctx.stroke();
                 ctx.restore();
             }
         }
 
-        const particleEngine = new UnifiedParticleSystem();
+        const portalSparks = [];
 
-        // --- 1. CLOAK OF THE DAMNED (DEMONIC HANDS WINGS) ---
-        function renderCloakOfTheDamned(ctx, spineBase, scale) {
+        // 3. Darkhold Souls of the Damned: Multi-Arm Skeletal Wings & Dark Smoke Cloak
+        function renderDarkholdCloak(ctx, centerX, centerY, scale) {
             ctx.save();
-            ctx.translate(spineBase.x, spineBase.y);
+            darkholdWaveTime += 0.04;
 
-            const time = Date.now() * 0.003;
-            const armCount = 7; // Arms per side
+            // Ambient Dark Red Fog / Vignette
+            const fogGrad = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, scale * 3.5);
+            fogGrad.addColorStop(0, 'rgba(80, 0, 20, 0.4)');
+            fogGrad.addColorStop(0.6, 'rgba(30, 0, 10, 0.6)');
+            fogGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = fogGrad;
+            ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
 
-            // Render Shadowy Tendrils / Demonic Skeletal Arms
-            for (let side = -1; side <= 1; side += 2) {
-                for (let i = 0; i < armCount; i++) {
-                    ctx.save();
-                    const baseAngle = (side * (0.3 + i * 0.22)) + Math.sin(time + i) * 0.08;
-                    const armLength = (scale * 2.2) * (0.65 + (i / armCount) * 0.5);
+            // Damned Skeletal Shadow Arms (6 Pairs radiating outward)
+            const armPairs = 7;
+            for (let i = 0; i < armPairs; i++) {
+                const baseAngleLeft = Math.PI * 0.8 + (i * 0.18) + Math.sin(darkholdWaveTime + i) * 0.08;
+                const baseAngleRight = Math.PI * 0.2 - (i * 0.18) - Math.sin(darkholdWaveTime + i) * 0.08;
+                const armLength = (scale * 2.2) + (i * 12);
 
-                    ctx.rotate(baseAngle - Math.PI / 2);
-
-                    // Demonic Arm Joint 1
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    const j1x = armLength * 0.45;
-                    const j1y = Math.sin(time * 2 + i) * 15;
-                    const hx = armLength;
-                    const hy = Math.sin(time * 2 + i + 1) * 25;
-
-                    ctx.quadraticCurveTo(j1x, j1y, hx, hy);
-                    ctx.strokeStyle = '#050205';
-                    ctx.lineWidth = 14 * (1 - i / (armCount + 2));
-                    ctx.shadowColor = '#ff0022';
-                    ctx.shadowBlur = 20;
-                    ctx.stroke();
-
-                    // Inner Malice Core Red Line
-                    ctx.strokeStyle = 'rgba(255, 0, 50, 0.8)';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-
-                    // Skeletal Claws / Hands at end of each arm
-                    ctx.translate(hx, hy);
-                    ctx.rotate(Math.sin(time * 3 + i) * 0.2);
-                    for (let f = -2; f <= 2; f++) {
-                        ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        const fx = 25 * Math.cos(f * 0.35);
-                        const fy = 25 * Math.sin(f * 0.35);
-                        ctx.lineTo(fx, fy);
-                        ctx.strokeStyle = '#080208';
-                        ctx.lineWidth = 3;
-                        ctx.stroke();
-
-                        ctx.strokeStyle = '#ff1133';
-                        ctx.lineWidth = 1;
-                        ctx.stroke();
-                    }
-
-                    ctx.restore();
-                }
+                drawSkeletalDamnedArm(ctx, centerX, centerY, baseAngleLeft, armLength, darkholdWaveTime + i);
+                drawSkeletalDamnedArm(ctx, centerX, centerY, baseAngleRight, armLength, darkholdWaveTime + i + 2);
             }
 
-            // Central Dark Void Smoke Base
-            const smokeGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, scale * 1.4);
-            smokeGrad.addColorStop(0, 'rgba(0,0,0,0.95)');
-            smokeGrad.addColorStop(0.6, 'rgba(40,0,10,0.6)');
-            smokeGrad.addColorStop(1, 'transparent');
-            ctx.fillStyle = smokeGrad;
-            ctx.beginPath();
-            ctx.arc(0, 0, scale * 1.4, 0, Math.PI * 2);
-            ctx.fill();
+            // Floating Dark Musical / Energy Runes around hands
+            const runeCount = 8;
+            for (let i = 0; i < runeCount; i++) {
+                const ang = (i * Math.PI * 2) / runeCount + darkholdWaveTime * 0.5;
+                const dist = scale * 1.5 + Math.sin(darkholdWaveTime * 2 + i) * 20;
+                const rx = centerX + Math.cos(ang) * dist;
+                const ry = centerY + Math.sin(ang) * dist;
 
-            particleEngine.spawn(spineBase.x, spineBase.y, 3, 'chaos');
-            ctx.restore();
-        }
-
-        // --- 2. DARKHOLD CHAOS MAGIC ORBS ---
-        function renderDarkholdChaosOrbs(ctx, centerX, centerY, scale) {
-            ctx.save();
-            const time = Date.now() * 0.0025;
-            const orbCount = 6;
-            const orbitRadius = scale * 1.6;
-
-            for (let i = 0; i < orbCount; i++) {
-                const angle = (i * (Math.PI * 2 / orbCount)) + time;
-                const ox = centerX + Math.cos(angle) * orbitRadius;
-                const oy = centerY + Math.sin(angle * 1.5) * (orbitRadius * 0.65);
-                const orbSize = 16 + Math.sin(time * 3 + i) * 4;
-
-                // Dark Energy Smoke Core
-                const orbGrad = ctx.createRadialGradient(ox, oy, 2, ox, oy, orbSize * 1.8);
-                orbGrad.addColorStop(0, '#ffffff');
-                orbGrad.addColorStop(0.25, '#ff0033');
-                orbGrad.addColorStop(0.7, '#2b0008');
-                orbGrad.addColorStop(1, 'transparent');
-
+                ctx.save();
                 ctx.beginPath();
-                ctx.arc(ox, oy, orbSize * 1.8, 0, Math.PI * 2);
-                ctx.fillStyle = orbGrad;
-                ctx.shadowColor = '#ff0033';
-                ctx.shadowBlur = 25;
+                ctx.arc(rx, ry, Math.random() * 8 + 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff0033';
+                ctx.shadowColor = '#ff0055';
+                ctx.shadowBlur = 18;
                 ctx.fill();
 
-                // Tendril Streams connecting Orbs
+                // Dark Energy Core
                 ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.quadraticCurveTo(
-                    centerX + (Math.random() - 0.5) * 30,
-                    centerY + (Math.random() - 0.5) * 30,
-                    ox, oy
-                );
-                ctx.strokeStyle = 'rgba(255, 0, 50, 0.4)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                particleEngine.spawn(ox, oy, 2, 'chaos');
+                ctx.arc(rx, ry, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000';
+                ctx.fill();
+                ctx.restore();
             }
+
             ctx.restore();
         }
 
-        // --- 3. MULTI-LAYER ELDRITCH / TIME SHIELD ---
-        function drawMultiLayerShield(ctx, x, y, radius, isGreen = false) {
+        // Skeletal Demonic Arm Drawer with Joint Angles & Claws
+        function drawSkeletalDamnedArm(ctx, rootX, rootY, angle, length, waveOffset) {
+            ctx.save();
+            ctx.shadowColor = '#ff0033';
+            ctx.shadowBlur = 15;
+
+            // Joint 1: Shoulder to Elbow
+            const elbowX = rootX + Math.cos(angle) * (length * 0.45);
+            const elbowY = rootY + Math.sin(angle) * (length * 0.45) - 20;
+
+            // Joint 2: Elbow to Wrist (with organic serpentine wave)
+            const wristAngle = angle + Math.sin(waveOffset) * 0.35;
+            const wristX = elbowX + Math.cos(wristAngle) * (length * 0.55);
+            const wristY = elbowY + Math.sin(wristAngle) * (length * 0.55);
+
+            // Draw Dark Skeletal Bone Arm
+            ctx.beginPath();
+            ctx.moveTo(rootX, rootY);
+            ctx.quadraticCurveTo(elbowX + Math.sin(waveOffset)*15, elbowY, wristX, wristY);
+            ctx.strokeStyle = '#1a0508';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Inner Red Core Vein
+            ctx.beginPath();
+            ctx.moveTo(rootX, rootY);
+            ctx.quadraticCurveTo(elbowX + Math.sin(waveOffset)*15, elbowY, wristX, wristY);
+            ctx.strokeStyle = '#ff003c';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw Skeletal Claws / Hands at wrist
+            for (let f = -2; f <= 2; f++) {
+                const clawAngle = wristAngle + (f * 0.25) + Math.sin(waveOffset * 1.5) * 0.15;
+                const clawLen = 28 + Math.abs(f) * 4;
+                const clawTipX = wristX + Math.cos(clawAngle) * clawLen;
+                const clawTipY = wristY + Math.sin(clawAngle) * clawLen;
+
+                ctx.beginPath();
+                ctx.moveTo(wristX, wristY);
+                ctx.lineTo(clawTipX, clawTipY);
+                ctx.strokeStyle = '#0d0003';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(clawTipX, clawTipY, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff2255';
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        // 4. Multi-Layer SVG Shield Renderer
+        function drawMultiLayerEldritchShield(ctx, x, y, radius, isGreen = false) {
             ctx.save();
             ctx.translate(x, y);
 
@@ -500,6 +561,7 @@
             ctx.strokeRect(-sqSide/2, -sqSide/2, sqSide, sqSide);
             ctx.restore();
 
+
             // Layer 2
             ctx.save();
             ctx.rotate(rotFastCCW);
@@ -533,16 +595,26 @@
             circle(260, brightColor, 4);
             circle(275, baseColor, 2, [8, 12]);
             circle(285, baseColor, 2);
+            const nodeDist = 285 * scale;
+            const nodes = [[0, nodeDist], [0, -nodeDist], [nodeDist, 0], [-nodeDist, 0]];
+            ctx.fillStyle = brightColor;
+            for (let n of nodes) {
+                ctx.beginPath();
+                ctx.arc(n[0], n[1], 4.5, 0, Math.PI * 2);
+                ctx.shadowColor = shadowClr;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+            }
             ctx.restore();
 
             ctx.restore();
         }
 
-        // --- 4. COSMIC SPACE PORTAL ---
+        // 5. Cosmic Multiverse Portal Dimension
         function renderCosmicPortal(ctx, x, y, radius) {
             if (radius < 15) return;
-            ctx.save();
 
+            ctx.save();
             ctx.save();
             ctx.beginPath();
             ctx.arc(x, y, radius * 0.78, 0, Math.PI * 2);
@@ -559,7 +631,7 @@
             ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
 
             const time = Date.now() * 0.002;
-            for (let i = 0; i < 25; i++) {
+            for (let i = 0; i < 30; i++) {
                 const starAngle = i * 137.5;
                 const starDist = ((i * 13 + time * 20) % (radius * 0.72));
                 const sx = x + Math.cos(starAngle) * starDist;
@@ -568,6 +640,8 @@
                 ctx.beginPath();
                 ctx.arc(sx, sy, (i % 3) + 1, 0, Math.PI * 2);
                 ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#ffd700';
+                ctx.shadowColor = '#00ffff';
+                ctx.shadowBlur = 8;
                 ctx.fill();
             }
             ctx.restore();
@@ -580,20 +654,38 @@
             ctx.shadowBlur = 15;
             ctx.stroke();
 
-            particleEngine.spawn(x, y, 3, 'portal');
+            for (let i = 0; i < 12; i++) {
+                const randomAngle = Math.random() * Math.PI * 2;
+                portalSparks.push(new SparkStreak(x, y, randomAngle, radius));
+            }
+
+            for (let i = portalSparks.length - 1; i >= 0; i--) {
+                portalSparks[i].update(x, y, radius);
+                portalSparks[i].draw(ctx);
+                if (!portalSparks[i].active) portalSparks.splice(i, 1);
+            }
+
             ctx.restore();
         }
 
-        // --- 5. 5-FINGER WHIPS ---
+        // 6. 5-Finger Whips
         function renderFiveFingerWhips(ctx, hand1, hand2) {
             const pairs = [4, 8, 12, 16, 20];
+
             pairs.forEach((fingerIdx, idx) => {
-                const p1 = { x: hand1[fingerIdx].x * canvasElement.width, y: hand1[fingerIdx].y * canvasElement.height };
-                const p2 = { x: hand2[fingerIdx].x * canvasElement.width, y: hand2[fingerIdx].y * canvasElement.height };
+                const p1 = {
+                    x: hand1[fingerIdx].x * canvasElement.width,
+                    y: hand1[fingerIdx].y * canvasElement.height
+                };
+                const p2 = {
+                    x: hand2[fingerIdx].x * canvasElement.width,
+                    y: hand2[fingerIdx].y * canvasElement.height
+                };
 
                 ctx.save();
                 ctx.shadowColor = '#ff6600';
-                ctx.shadowBlur = 16;
+                ctx.shadowBlur = 18;
+
                 const midX = (p1.x + p2.x) / 2;
                 const midY = (p1.y + p2.y) / 2 + (idx * 12 + 18);
 
@@ -614,7 +706,19 @@
             });
         }
 
-        // Frame Processing
+        function isNamastePose(hand1, hand2) {
+            const wrist1 = hand1[0];
+            const wrist2 = hand2[0];
+            const middleTip1 = hand1[12];
+            const middleTip2 = hand2[12];
+
+            const wristDist = Math.hypot(wrist1.x - wrist2.x, wrist1.y - wrist2.y);
+            const tipDist = Math.hypot(middleTip1.x - middleTip2.x, middleTip1.y - middleTip2.y);
+
+            return wristDist < 0.22 && tipDist < 0.18;
+        }
+
+        // Processing Pipeline Loop
         function onResults(results) {
             if (loadingScreen.style.display !== 'none') {
                 loadingScreen.style.display = 'none';
@@ -626,87 +730,115 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 statusDot.classList.add('active');
 
-                // Render Joint Dots
+                // Render Darkhold Souls of Damned Cloak if Active
+                if (isDarkholdActive) {
+                    const firstPalm = results.multiHandLandmarks[0][9];
+                    const cx = firstPalm.x * canvasElement.width;
+                    const cy = firstPalm.y * canvasElement.height + 40;
+                    renderDarkholdCloak(canvasCtx, cx, cy, 140);
+                }
+
+                // Draw Landmark Joint Tracking Dots
                 results.multiHandLandmarks.forEach((landmarks) => {
                     landmarks.forEach((lm, idx) => {
                         const px = lm.x * canvasElement.width;
                         const py = lm.y * canvasElement.height;
                         canvasCtx.beginPath();
-                        canvasCtx.arc(px, py, [4, 8, 12, 16, 20].includes(idx) ? 4.5 : 3, 0, Math.PI * 2);
-                        canvasCtx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#00ffff' : '#ff003c';
-                        canvasCtx.shadowColor = '#00ffaa';
-                        canvasCtx.shadowBlur = 5;
+                        canvasCtx.arc(px, py, [4, 8, 12, 16, 20].includes(idx) ? 5 : 3.5, 0, Math.PI * 2);
+                        canvasCtx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#00ffff' : (isDarkholdActive ? '#ff0033' : '#ff003c');
+                        canvasCtx.shadowColor = isDarkholdActive ? '#ff0055' : '#00ffaa';
+                        canvasCtx.shadowBlur = 6;
                         canvasCtx.fill();
                     });
                 });
-
-                // Calculate Spine / Center Reference
-                const wrist0 = results.multiHandLandmarks[0][0];
-                const centerRef = {
-                    x: wrist0.x * canvasElement.width,
-                    y: (wrist0.y * canvasElement.height) + 120
-                };
-
-                // Render Demonic Cloak of the Damned
-                if (isCloakActive) {
-                    renderCloakOfTheDamned(canvasCtx, centerRef, 160);
-                }
-
-                // Render Darkhold Chaos Magic Orbs
-                if (isDarkholdActive) {
-                    renderDarkholdChaosOrbs(canvasCtx, centerRef.x, centerRef.y - 80, 140);
-                }
 
                 if (results.multiHandLandmarks.length >= 2) {
                     const hand1 = results.multiHandLandmarks[0];
                     const hand2 = results.multiHandLandmarks[1];
 
-                    // Sling Ring Portal Check
-                    const isSlingPose = hand1[8].y < hand1[6].y && hand1[12].y < hand1[10].y && hand1[16].y > hand1[14].y;
-                    if (isSlingPose) {
-                        const portalCenter = { x: hand1[9].x * canvasElement.width, y: hand1[9].y * canvasElement.height };
-                        const rotatingTip = { x: hand2[8].x * canvasElement.width, y: hand2[8].y * canvasElement.height };
+                    // Check Namaste Pose
+                    if (isNamastePose(hand1, hand2)) {
+                        setVoiceState(true);
+                    } else {
+                        setVoiceState(false);
+                    }
+
+                    // Check Sling Ring Gesture
+                    const isSlingPose = hand1[8].y < hand1[6].y && 
+                                        hand1[12].y < hand1[10].y && 
+                                        hand1[16].y > hand1[14].y;
+
+                    if (isSlingPose && !isDarkholdActive) {
+                        const portalCenter = {
+                            x: hand1[9].x * canvasElement.width,
+                            y: hand1[9].y * canvasElement.height
+                        };
+
+                        const rotatingTip = {
+                            x: hand2[8].x * canvasElement.width,
+                            y: hand2[8].y * canvasElement.height
+                        };
+
                         const currentAngle = Math.atan2(rotatingTip.y - portalCenter.y, rotatingTip.x - portalCenter.x);
 
                         if (lastAngle !== null) {
                             let delta = currentAngle - lastAngle;
                             if (delta > Math.PI) delta -= Math.PI * 2;
                             if (delta < -Math.PI) delta += Math.PI * 2;
+
                             totalRotation += Math.abs(delta);
                             targetPortalRadius = Math.min(340, Math.max(50, totalRotation * 22));
                         }
                         lastAngle = currentAngle;
+
                         portalRadius += (targetPortalRadius - portalRadius) * 0.12;
                         renderCosmicPortal(canvasCtx, portalCenter.x, portalCenter.y, portalRadius);
                     } else {
                         lastAngle = null;
                         totalRotation = Math.max(0, totalRotation - 0.05);
                         portalRadius += (0 - portalRadius) * 0.12;
-                        renderFiveFingerWhips(canvasCtx, hand1, hand2);
+
+                        if (!isNamastePose(hand1, hand2) && !isDarkholdActive) {
+                            renderFiveFingerWhips(canvasCtx, hand1, hand2);
+                        }
                     }
                 } else {
+                    setVoiceState(false);
                     lastAngle = null;
                 }
 
-                // Render Shields
+                // Render Shield when Active
                 if (activeShieldType) {
                     results.multiHandLandmarks.forEach((landmarks) => {
-                        const palmCenter = { x: landmarks[9].x * canvasElement.width, y: landmarks[9].y * canvasElement.height };
-                        const wrist = { x: landmarks[0].x * canvasElement.width, y: landmarks[0].y * canvasElement.height };
+                        const palmCenter = {
+                            x: landmarks[9].x * canvasElement.width,
+                            y: landmarks[9].y * canvasElement.height
+                        };
+                        const wrist = {
+                            x: landmarks[0].x * canvasElement.width,
+                            y: landmarks[0].y * canvasElement.height
+                        };
                         const handScale = Math.hypot(palmCenter.x - wrist.x, palmCenter.y - wrist.y);
-                        drawMultiLayerShield(canvasCtx, palmCenter.x, palmCenter.y, handScale * 2.1, activeShieldType === 'time');
+                        
+                        drawMultiLayerEldritchShield(
+                            canvasCtx, 
+                            palmCenter.x, 
+                            palmCenter.y, 
+                            handScale * 2.1, 
+                            activeShieldType === 'time'
+                        );
                     });
                 }
+
             } else {
                 statusDot.classList.remove('active');
-                lastAngle = null;
+                setVoiceState(false);
             }
 
-            particleEngine.updateAndRender(canvasCtx);
             canvasCtx.restore();
         }
 
-        // Initialize MediaPipe
+        // Initialize MediaPipe Engine
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -720,6 +852,7 @@
 
         hands.onResults(onResults);
 
+        // Single Front Camera Pipeline
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({ image: videoElement });
@@ -728,9 +861,11 @@
             height: 720
         });
 
-        camera.start().catch((err) => {
-            console.error("Camera access failed:", err);
-            document.getElementById('loading-text').innerText = "Camera Access Failed.";
+        camera.start().then(() => {
+            setupVoiceRecognition();
+        }).catch((err) => {
+            console.error("Camera access error:", err);
+            document.getElementById('loading-text').innerText = "Please grant camera permission.";
         });
     </script>
 </body>
