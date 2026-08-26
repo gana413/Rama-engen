@@ -13,42 +13,33 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <style>
-    /* Neon Glow Effect for Dynamic Text */
     .glow-text {
       text-shadow: 0 0 10px rgba(255, 20, 147, 0.8),
                    0 0 20px rgba(255, 105, 180, 0.8),
                    0 0 40px rgba(255, 0, 128, 0.9),
                    0 0 70px rgba(255, 0, 128, 1);
     }
-    /* Mirror the webcam video feed */
-    #webcam {
-      transform: scaleX(-1);
-    }
-    #output-canvas {
+    #webcam, #output-canvas {
       transform: scaleX(-1);
     }
   </style>
 </head>
 <body class="bg-gray-950 text-white overflow-hidden select-none font-sans">
 
-  <!-- Fullscreen Video Canvas Wrapper -->
   <div class="relative w-screen h-screen flex items-center justify-center">
     
-    <!-- Hidden Raw Video Source -->
     <video id="webcam" class="hidden" playsinline autoplay></video>
-
-    <!-- Hand Skeleton Render Canvas -->
     <canvas id="output-canvas" class="absolute inset-0 w-full h-full object-cover z-0"></canvas>
 
-    <!-- UI Overlay / Camera Guide -->
-    <div id="instructions" class="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-pink-500/30 text-center shadow-lg transition-opacity duration-300">
+    <!-- Instructions -->
+    <div id="instructions" class="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-pink-500/30 text-center shadow-lg">
       <p class="text-sm md:text-base font-semibold text-pink-300">
-        ✨ కెమెరా ముందు మీ 2 చేతులను ఉంచి దూరం జరపండి ✨
+        ✨ కెమెరా ముందు 2 చేతులు ఉంచి దూరం జరపండి ✨
       </p>
     </div>
 
-    <!-- Dynamic Overlay Container -->
-    <div id="text-container" class="absolute z-10 pointer-events-none flex flex-col items-center justify-center opacity-0 transition-opacity duration-200">
+    <!-- Dynamic Text Container (No Line) -->
+    <div id="text-container" class="absolute z-10 pointer-events-none flex flex-col items-center justify-center opacity-0 transition-opacity duration-150">
       <h1 id="bday-main-text" class="glow-text font-black tracking-wider text-center text-pink-400 whitespace-nowrap drop-shadow-2xl">
         🎉 HAPPY BIRTHDAY 🎉
       </h1>
@@ -57,16 +48,15 @@
       </h2>
     </div>
 
-    <!-- Status / Loading Indicator -->
+    <!-- Loading -->
     <div id="loading" class="absolute z-30 flex flex-col items-center gap-3">
       <div class="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-      <p class="text-pink-300 font-medium tracking-wide">కెమెరా మరియు AI మోడల్ లోడ్ అవుతున్నాయి...</p>
+      <p class="text-pink-300 font-medium tracking-wide">ఫాస్ట్ మోడ్ లోడ్ అవుతోంది...</p>
     </div>
 
   </div>
 
   <script>
-    // FIZONYX Senior Engineering Script Setup
     const videoElement = document.getElementById('webcam');
     const canvasElement = document.getElementById('output-canvas');
     const canvasCtx = canvasElement.getContext('2d');
@@ -74,11 +64,9 @@
     const bdayMainText = document.getElementById('bday-main-text');
     const bdayNameText = document.getElementById('bday-name-text');
     const loadingElement = document.getElementById('loading');
-    const instructionsElement = document.getElementById('instructions');
 
     let confettiTriggered = false;
 
-    // Resize canvas to match window dimensions
     function resizeCanvas() {
       canvasElement.width = window.innerWidth;
       canvasElement.height = window.innerHeight;
@@ -86,56 +74,46 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Trigger birthday confetti burst
     function shootConfetti() {
       confetti({
-        particleCount: 80,
-        spread: 100,
+        particleCount: 90,
+        spread: 120,
         origin: { y: 0.6 }
       });
     }
 
-    // Process Hand Landmarks callback
     function onResults(results) {
-      // Hide loading spinner once ready
       if (loadingElement.style.display !== 'none') {
         loadingElement.style.display = 'none';
       }
 
-      // Draw background camera frame to canvas
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-      // Verify if both hands (2 hands) are detected
       if (results.multiHandLandmarks && results.multiHandLandmarks.length >= 2) {
         const hand1 = results.multiHandLandmarks[0];
         const hand2 = results.multiHandLandmarks[1];
 
-        // Reference landmark 0 (Wrist) or landmark 9 (Middle MCP) for hand position
-        const p1 = hand1[9]; // Hand 1 center point
-        const p2 = hand2[9]; // Hand 2 center point
+        const p1 = hand1[9]; // Middle finger MCP / Center of palm
+        const p2 = hand2[9];
 
-        // Calculate mirrored Screen Coordinates
         const x1 = (1 - p1.x) * window.innerWidth;
         const y1 = p1.y * window.innerHeight;
         const x2 = (1 - p2.x) * window.innerWidth;
         const y2 = p2.y * window.innerHeight;
 
-        // Euclidean Distance between both hands
         const dx = x2 - x1;
         const dy = y2 - y1;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Center Midpoint coordinates
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
 
-        // Map distance to dynamic font sizes (Clamp values)
-        const baseSize = Math.max(16, Math.min(distance * 0.14, 90));
+        // Dynamic size mapping based on distance
+        const baseSize = Math.max(18, Math.min(distance * 0.15, 100));
         const nameSize = baseSize * 0.75;
 
-        // Apply dynamic positioning and scale
         textContainer.style.left = `${midX}px`;
         textContainer.style.top = `${midY}px`;
         textContainer.style.transform = `translate(-50%, -50%)`;
@@ -144,15 +122,7 @@
         bdayMainText.style.fontSize = `${baseSize}px`;
         bdayNameText.style.fontSize = `${nameSize}px`;
 
-        // Draw connecting visual laser line between hands
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(p1.x * canvasElement.width, p1.y * canvasElement.height);
-        canvasCtx.lineTo(p2.x * canvasElement.width, p2.y * canvasElement.height);
-        canvasCtx.strokeStyle = 'rgba(255, 20, 147, 0.7)';
-        canvasCtx.lineWidth = 4;
-        canvasCtx.stroke();
-
-        // Trigger confetti celebration when hands are opened wide
+        // Confetti trigger on wide distance
         if (distance > window.innerWidth * 0.45 && !confettiTriggered) {
           shootConfetti();
           confettiTriggered = true;
@@ -160,38 +130,36 @@
         }
 
       } else {
-        // Hide text if 2 hands are not fully visible
         textContainer.style.opacity = '0';
       }
 
       canvasCtx.restore();
     }
 
-    // Initialize MediaPipe Hands
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
+    // Optimized for speed and performance
     hands.setOptions({
       maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6
+      modelComplexity: 0, // Set to 0 for lightning-fast performance
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
     });
 
     hands.onResults(onResults);
 
-    // Initialize Camera Feed
     const camera = new Camera(videoElement, {
       onFrame: async () => {
         await hands.send({ image: videoElement });
       },
-      width: 1280,
-      height: 720
+      width: 640,  // Lower resolution for high speed
+      height: 480
     });
 
     camera.start().catch((err) => {
-      console.error("Camera access failed:", err);
+      console.error("Camera error:", err);
       loadingElement.innerHTML = `<p class="text-red-400 font-bold">కెమెరా పర్మిషన్ అవసరం!</p>`;
     });
   </script>
